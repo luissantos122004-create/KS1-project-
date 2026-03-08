@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anahaw Interactive Quiz - DepEd Edition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body, html {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: 'Arial Rounded MT Bold', cursive, sans-serif;
+            user-select: none;
+            color: #000000;
+        }
+
+        /* --- GARDEN BACKGROUND --- */
+        .garden-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #2e7d32 0%, #4caf50 100%);
+            z-index: 1;
+            transition: 0.8s ease;
+            overflow: hidden;
+        }
+
+        .white-bg-active { background: #f0f2f5 !important; }
+
+        /* --- SWAYING ANAHAW (BOTTOM RIGHT) --- */
+        .swaying-anahaw {
+            position: absolute;
+            bottom: -20px;
+            right: -20px;
+            width: 300px;
+            z-index: 2;
+            transform-origin: bottom right;
+            animation: sway 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(-5deg) scale(1.05); }
+        }
+
+        /* --- FALLING ANAHAW EFFECT --- */
+        .falling-leaf {
+            position: absolute;
+            top: -100px;
+            z-index: 2;
+            opacity: 0.6;
+            pointer-events: none;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(0) rotate(0deg) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(110vh) rotate(360deg) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        /* --- UI COMPONENTS --- */
+        .ui-wrapper { position: relative; z-index: 10; height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.95); 
+            border: 8px solid #004a8e; 
+            border-radius: 50px; 
+            padding: 50px 40px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            max-width: 900px; width: 95%; text-align: center; position: relative;
+        }
+
+        .deped-logo { position: absolute; top: -45px; left: 30px; width: 130px; z-index: 20; }
+
+        .story-box {
+            font-size: 1.8rem; line-height: 1.4; background: #ffffff;
+            border-radius: 30px; border: 5px dashed #004a8e;
+            padding: 25px; margin-top: 10px; text-align: left;
+        }
+
+        .anahaw-center-img {
+            width: 180px; height: auto; margin-bottom: 10px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .btn-custom { font-size: 2.2rem; padding: 15px 60px; border-radius: 100px; border: none; font-weight: bold; color: white !important; cursor: pointer; background: #004a8e; box-shadow: 0 10px 0 #002d5a; }
+        .btn-custom:active { transform: translateY(5px); box-shadow: 0 4px 0 #002d5a; }
+
+        .btn-choice { background: white; color: #000 !important; border: 3px solid #004a8e; width: 100%; margin-bottom: 12px; padding: 12px; font-size: 1.6rem; border-radius: 20px; font-weight: bold; box-shadow: 0 6px 0 #004a8e; }
+        .btn-choice:hover:not(:disabled) { background: #eef6ff; transform: scale(1.02); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="bg-layer" class="garden-bg">
+        <img src="anahaw.png" class="swaying-anahaw" alt="Moving Leaf">
+    </div>
+
+    <div class="ui-wrapper">
+        <div class="main-card">
+            <img src="deped.png" class="deped-logo" alt="DepEd">
+
+            <div id="content-welcome">
+                <h1 style="color: #004a8e; font-weight: 800; font-size: 3.5rem;">Handa Ka Na Ba?</h1>
+                <img src="anahaw.png" class="anahaw-center-img" alt="Anahaw">
+                <br>
+                <button class="btn-custom" onclick="goToStory()">MAGSIMULA!</button>
+            </div>
+
+            <div id="content-story" class="hidden">
+                <h1 style="color: #004a8e;">Basahin Natin 📖</h1>
+                <div class="d-flex align-items-center gap-4 mt-4">
+                    <img src="anahaw.png" style="width: 150px;">
+                    <div class="story-box">
+                        Ito ay <b>malapad, makintab, pabilog</b> at may kulay <b>berdeng</b> dahon. <br>
+                        Ito ang <b>kalapyaw</b> noon. <br>
+                        Ito ang <b>pambansang dahon</b> ng mga Pilipino.
+                    </div>
+                </div>
+                <button class="btn-custom mt-5" onclick="goToQuiz()">MAGPATULOY 🚀</button>
+            </div>
+
+            <div id="content-quiz" class="hidden">
+                <h2 id="question-text" style="font-size: 2.5rem; margin-bottom: 30px; font-weight: bold; color: #004a8e;"></h2>
+                <div id="choices-container"></div>
+                <div id="message" class="mt-3 fs-2 fw-bold"></div>
+            </div>
+
+            <div id="content-finish" class="hidden">
+                <h1 style="font-size: 4rem; color: #004a8e;">Galing! 🏆</h1>
+                <button class="btn-custom" onclick="location.reload()">ULITIN 🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="ding" src="https://www.myinstants.com/media/sounds/ding-sound-effect_1.mp3"></audio>
+    <audio id="buzzer" src="https://www.myinstants.com/media/sounds/spongebob-fail.mp3"></audio>
+
+    <script>
+        const questions = [
+            { q: "1. Ano ang pambansang dahon?", opt: ["Lagundi", "Sambong", "Anahaw"], ans: 2 },
+            { q: "2. Ano ang kulay nito?", opt: ["Dilaw", "Asul", "Berde"], ans: 2 },
+            { q: "3. Ano ang hugis ng anahaw?", opt: ["pabilog", "papuso", "pahaba"], ans: 0 },
+            { q: "4. Ano ang gamit ng anahaw noon?", opt: ["kapote", "sapatos", "sasakyan"], ans: 0 },
+            { q: "5. Ano ang katangian ng dahon nito?", opt: ["Malapad at makintab", "Maliit at tuyo", "Mahaba at tinik"], ans: 0 }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let retakeCount = (function() {
+            const user = localStorage.getItem('currentUser');
+            const lb = JSON.parse(localStorage.getItem('leaderboard')) || {};
+            return (user && lb[user] && lb[user]['anahaw']) ? (lb[user]['anahaw'].retakes || 0) : 0;
+        })();
+
+        function createFallingLeaf() {
+            const container = document.getElementById('bg-layer');
+            if (!container || container.classList.contains('white-bg-active')) return;
+
+            const leaf = document.createElement('img');
+            leaf.src = 'anahaw.png';
+            leaf.className = 'falling-leaf';
+            
+            const startPos = Math.random() * 100;
+            const duration = Math.random() * 5 + 7;
+            const size = Math.random() * 50 + 30;
+            const delay = Math.random() * 5;
+
+            leaf.style.left = startPos + '%';
+            leaf.style.width = size + 'px';
+            leaf.style.animationDuration = duration + 's';
+            leaf.style.animationDelay = delay + 's';
+
+            container.appendChild(leaf);
+            setTimeout(() => leaf.remove(), (duration + delay) * 1000);
+        }
+        setInterval(createFallingLeaf, 600);
+
+        function goToStory() {
+            document.getElementById('ding').play();
+            showScreen('story');
+        }
+
+        function goToQuiz() {
+            document.getElementById('ding').play();
+            // Change background to white when starting the quiz
+            document.getElementById('bg-layer').classList.add('white-bg-active');
+            document.querySelector('.swaying-anahaw').style.display = 'none';
+            document.querySelectorAll('.falling-leaf').forEach(leaf => leaf.remove());
+            showScreen('quiz');
+        }
+
+        function resetQuiz() {
+            retakeCount++;
+            // Record the retry immediately
+            const user = localStorage.getItem('currentUser');
+            if(user) {
+                let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || {};
+                if(!leaderboard[user]) leaderboard[user] = {};
+                leaderboard[user]['anahaw'] = { retakes: retakeCount };
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            }
+
+            currentQ = 0;
+            score = 0;
+            document.getElementById('content-finish').classList.add('hidden');
+            document.getElementById('content-welcome').classList.remove('hidden');
+            document.getElementById('bg-layer').classList.remove('white-bg-active');
+            document.querySelector('.swaying-anahaw').style.display = 'block';
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.main-card > div').forEach(div => div.classList.add('hidden'));
+            document.getElementById(`content-${id}`).classList.remove('hidden');
+            if(id === 'quiz') loadQuestion();
+        }
+
+        function loadQuestion() {
+            const data = questions[currentQ];
+            document.getElementById('question-text').innerText = data.q;
+            const container = document.getElementById('choices-container');
+            const msg = document.getElementById('message');
+            
+            container.innerHTML = "";
+            msg.innerText = "";
+
+            data.opt.forEach((val, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-choice";
+                btn.innerText = `${String.fromCharCode(65 + idx)}. ${val}`;
+                btn.onclick = () => {
+                    const allBtns = container.querySelectorAll('.btn-choice');
+                    allBtns.forEach(b => b.disabled = true);
+
+                    if(idx === data.ans) {
+                        score++;
+                        confetti();
+                        document.getElementById('ding').play();
+                        msg.innerHTML = "<span style='color: green;'>TAMA! ⭐</span>";
+                    } else {
+                        document.getElementById('buzzer').play();
+                        msg.innerHTML = "<span style='color: red;'>MALI! ❌</span>";
+                    }
+                    setTimeout(nextQuestion, 1500);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function nextQuestion() {
+            currentQ++;
+            if(currentQ < questions.length) loadQuestion();
+            else showResult();
+        }
+
+        function showResult() {
+            showScreen('finish');
+            const isPerfect = (score === questions.length);
+            const finishDiv = document.getElementById('content-finish');
+            
+            // SAVE TO LEADERBOARD
+            const currentUser = localStorage.getItem('currentUser');
+            if(currentUser) {
+                let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || {};
+                if(!leaderboard[currentUser]) leaderboard[currentUser] = {};
+                
+                leaderboard[currentUser]['anahaw'] = { retakes: retakeCount };
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            }
+
+            finishDiv.innerHTML = `
+                <h1 style="font-size: 4rem; color: #004a8e;">${isPerfect ? 'NAPAKAHUSAY! 🏆' : 'Galing!'}</h1>
+                <div style="font-size: 2rem; color: #004a8e;" class="mb-4">Bilang ng Ulit: ${retakeCount}</div>
+                ${isPerfect 
+                    ? `<button class="btn-custom" onclick="window.location.href='../Main.html'">SUSUNOD NA ARALIN ➡️</button>` 
+                    : `<button class="btn-custom" onclick="resetQuiz()">ULITIN 🔄</button>`
+                }
+            `;
+
+            if(isPerfect) {
+                confetti({ particleCount: 200, spread: 100 });
+                localStorage.setItem(`story_completed_${currentUser}_anahaw`, 'true');
+            }
+        }
+    </script>
+</body>
+</html>

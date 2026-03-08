@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ang Hugis na Nakakaaliw - Interactive Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Alfabeto';
+            src: url('Alfabeto.ttf') format('truetype');
+        }
+        :root {
+            --primary-font: 'Alfabeto', 'Fredoka', 'Comic Sans MS', cursive, sans-serif;
+            --blue-accent: #0077b6;
+            --text-black: #000000;
+        }
+
+        body, html {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: var(--primary-font);
+            background: #f0f4f8;
+            user-select: none;
+            color: var(--text-black);
+        }
+
+        #shape-box { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 1; overflow: hidden; transition: opacity 0.5s ease;
+        }
+        
+        .shape-wrapper { position: absolute; z-index: 1; animation: fall-rotate linear infinite; }
+
+        /* Solid Shapes */
+        .f-circle { width: 50px; height: 50px; background: #ffeb3b; border-radius: 50%; border: 2px solid #fbc02d; }
+        .f-triangle { 
+            width: 0; height: 0; border-left: 30px solid transparent; border-right: 30px solid transparent;
+            border-bottom: 55px solid #4caf50; 
+        }
+        .f-long-square { width: 70px; height: 40px; background: #ff9800; border: 2px solid #e67e22; }
+        .f-box { width: 50px; height: 50px; background: #2196f3; border: 2px solid #1976d2; }
+
+        @keyframes fall-rotate {
+            0% { top: -100px; transform: rotate(0deg); }
+            100% { top: 110vh; transform: rotate(360deg); }
+        }
+
+        .ui-wrapper {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.98); 
+            border: 12px solid var(--blue-accent);
+            border-radius: 50px; padding: 40px; box-shadow: 0 25px 50px rgba(0,0,0,0.1);
+            max-width: 1100px; width: 95%; text-align: center; position: relative;
+        }
+
+        .story-box {
+            flex: 1; font-size: 1.8rem; line-height: 1.6; background: #ffffff;
+            border-radius: 30px; border: 5px dashed var(--blue-accent); padding: 30px;
+        }
+
+        .story-container { display: flex; align-items: center; justify-content: center; gap: 30px; margin-top: 20px; }
+        .story-image-box { flex: 0.8; max-width: 400px; }
+        .story-image-box img { width: 100%; height: auto; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+
+        .deped-logo { position: absolute; top: -75px; left: 40px; width: 140px; }
+        
+        #timer-display {
+            position: fixed; top: 20px; right: 20px; background: #d62828; color: white !important;
+            padding: 10px 25px; border-radius: 50px; font-size: 2rem; font-weight: 700;
+            border: 4px solid white; z-index: 100;
+        }
+
+        .btn-custom {
+            font-size: 2.5rem; padding: 15px 50px; border-radius: 100px; border: none;
+            font-weight: 700; color: white !important; box-shadow: 0 10px 0 #005f8d; cursor: pointer;
+            text-transform: uppercase;
+        }
+        .btn-ready { background-color: var(--blue-accent); }
+
+        .btn-choice { 
+            background-color: white; border: 4px solid var(--blue-accent); 
+            width: 100%; margin-bottom: 15px; text-align: left; padding: 15px 35px;
+            font-size: 2rem; border-radius: 30px; box-shadow: 0 8px 0 var(--blue-accent);
+            transition: all 0.2s; color: var(--text-black) !important;
+        }
+        
+        .btn-choice:hover:not(:disabled) { background-color: #e1f5fe; }
+        .choice-marker { color: #000000 !important; font-weight: 700; margin-right: 10px; }
+
+        #message { font-size: 2.5rem; margin-top: 10px; min-height: 3.5rem; font-weight: 700; }
+        .hidden { display: none !important; }
+        .transparent { opacity: 0; pointer-events: none; }
+        .score-text { font-size: 4.5rem; font-weight: 700; color: var(--blue-accent) !important; }
+
+        .shake { animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="shape-box"></div>
+
+    <div id="timer-display" class="hidden">05:00</div>
+
+    <div class="ui-wrapper">
+        <div class="main-card" id="card-container">
+            <img src="deped.png" class="deped-logo" alt="DepEd Logo">
+            
+            <div id="content-welcome">
+                <h1 class="mb-5" style="font-size: 3.5rem;">Ang Hugis na Nakakaaliw</h1>
+                <button class="btn-custom btn-ready" onclick="showStory()">MAGSIMULA</button>
+            </div>
+
+            <div id="content-story" class="hidden">
+                <h1 class="mb-4" style="color: var(--blue-accent) !important;">Ang Hugis na Nakakaaliw</h1>
+                <div class="story-container">
+                    <div class="story-box text-start">
+                        Si <b>Bil Bilog</b> ay pagulong-gulong.<br>
+                        Si <b>Tata Tatsulok</b> ay may tatlong sulok.<br>
+                        Si <b>Pari Parihaba</b> ay may dalawang gilid na magkasinghaba.<br>
+                        Si <b>Ukat Parisukat</b> naman ay may perpektong apat na gilid.
+                    </div>
+                    <div class="story-image-box">
+                        <img src="hugis.png" alt="Mga Hugis" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3256/3256241.png'">
+                    </div>
+                </div>
+                <button class="btn-custom btn-ready mt-5" onclick="startQuiz()">MAGPATULOY</button>
+            </div>
+
+            <div id="content-quiz" class="hidden">
+                <div class="mb-4">
+                    <h2 id="question-text" style="font-size: 2.8rem; font-weight: 700;"></h2>
+                </div>
+                <div id="choices-container"></div>
+                <div id="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="ding" src="https://www.myinstants.com/media/sounds/ding-sound-effect_1.mp3"></audio>
+    <audio id="buzzer" src="https://www.myinstants.com/media/sounds/spongebob-fail.mp3"></audio>
+
+    <script>
+        const sBox = document.getElementById('shape-box');
+        const shapeClasses = ['f-circle', 'f-triangle', 'f-long-square', 'f-box'];
+        for (let i = 0; i < 16; i++) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'shape-wrapper';
+            wrapper.style.left = Math.random() * 95 + '%';
+            wrapper.style.animationDuration = (Math.random() * 4 + 6) + 's';
+            wrapper.style.animationDelay = -(Math.random() * 10) + 's';
+            const shape = document.createElement('div');
+            shape.className = shapeClasses[i % 4];
+            wrapper.appendChild(shape);
+            sBox.appendChild(wrapper);
+        }
+
+        const questions = [
+            { q: "Ano ang pagulong-gulong?", opt: ["Bilog", "Parihaba", "Parisukat", "Tatsulok"], ans: 0 },
+            { q: "Alin ang may tatlong sulok?", opt: ["Bilog", "Parihaba", "Parisukat", "Tatsulok"], ans: 3 },
+            { q: "Alin ang may dalawang gilid na magkasinghaba?", opt: ["Bilog", "Parihaba", "Parisukat", "Tatsulok"], ans: 1 },
+            { q: "Alin ang may pantay na apat na gilid?", opt: ["Bilog", "Parihaba", "Parisukat", "Tatsulok"], ans: 2 },
+            { q: "Ilan ang mga hugis sa talata?", opt: ["anim", "apat", "lima", "walo"], ans: 1 }
+        ];
+
+        let currentQ = 0; let score = 0; let timeLeft = 300;
+        let retakeCount = 0;
+        let timerInterval;
+
+        function showStory() {
+            document.getElementById('ding').play();
+            document.getElementById('content-welcome').classList.add('hidden');
+            document.getElementById('content-story').classList.remove('hidden');
+        }
+
+        function startQuiz() {
+            document.getElementById('ding').play();
+            document.getElementById('shape-box').classList.add('transparent');
+            document.getElementById('content-story').classList.add('hidden');
+            document.getElementById('content-quiz').classList.remove('hidden');
+            document.getElementById('timer-display').classList.remove('hidden');
+            startTimer();
+            loadQuestion();
+        }
+
+        function resetQuiz() {
+            retakeCount++;
+            currentQ = 0;
+            score = 0;
+            timeLeft = 300;
+            clearInterval(timerInterval);
+            
+            // Restore Quiz HTML Structure
+            document.getElementById('content-quiz').innerHTML = `
+                <div class="mb-4"><h2 id="question-text" style="font-size: 2.8rem; font-weight: 700;"></h2></div>
+                <div id="choices-container"></div><div id="message"></div>
+            `;
+            
+            document.getElementById('content-quiz').classList.add('hidden');
+            document.getElementById('content-welcome').classList.remove('hidden');
+            document.getElementById('shape-box').classList.remove('transparent');
+            document.getElementById('timer-display').classList.add('hidden');
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    let mins = Math.floor(timeLeft / 60);
+                    let secs = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    clearInterval(timerInterval);
+                    finish();
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            const data = questions[currentQ];
+            document.getElementById('question-text').innerHTML = `<span style="color:var(--blue-accent)">${currentQ + 1}.</span> ${data.q}`;
+            const container = document.getElementById('choices-container');
+            container.innerHTML = "";
+            document.getElementById('message').innerText = "";
+            
+            data.opt.forEach((val, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-choice";
+                // Markers A, B, C are now explicitly BLACK
+                btn.innerHTML = `<span class="choice-marker">${String.fromCharCode(65 + idx)}.</span> ${val}`;
+                
+                btn.onclick = () => {
+                    const allBtns = container.querySelectorAll('.btn-choice');
+                    allBtns.forEach(b => b.disabled = true);
+
+                    if(idx === data.ans) {
+                        score++;
+                        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                        document.getElementById('ding').play();
+                        document.getElementById('message').innerHTML = "<span style='color:#2ecc71'>TAMA! 🌟</span>";
+                    } else {
+                        document.getElementById('buzzer').play();
+                        btn.classList.add('shake');
+                        document.getElementById('message').innerHTML = "<span style='color:#e74c3c'>SUBUKAN MULI!</span>";
+                    }
+                    
+                    setTimeout(() => {
+                        currentQ++;
+                        if(currentQ < questions.length) loadQuestion();
+                        else finish();
+                    }, 1500);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function finish() {
+            const quizNode = document.getElementById('content-quiz');
+            // Check for score to display correct message
+            const isPerfect = (score === questions.length);
+            let endMsg = isPerfect ? "NAPAKAHUSAY!" : "SUBUKAN MULI KAYA MO YAN";
+            
+            if(isPerfect) {
+                localStorage.setItem('story_completed_hugis', 'true');
+            }
+
+            // SAVE TO LEADERBOARD
+            const currentUser = localStorage.getItem('currentUser');
+            if(currentUser) {
+                let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || {};
+                if(!leaderboard[currentUser]) leaderboard[currentUser] = {};
+                
+                const currentData = leaderboard[currentUser]['hugis'] || { score: 0, retakes: 0 };
+                let newScore = isPerfect ? score : currentData.score;
+                
+                leaderboard[currentUser]['hugis'] = { score: newScore, retakes: retakeCount };
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            }
+            
+            quizNode.innerHTML = `
+                <h1 class="mb-4">${endMsg}</h1>
+                <div class="score-text mb-4">SCORE: ${score}/${questions.length}</div>
+                <div style="font-size: 2rem; color: #0077b6;" class="mb-4">Bilang ng Ulit: ${retakeCount}</div>
+                ${isPerfect 
+                    ? `<button class="btn-custom btn-ready mt-4" onclick="window.location.href='../story IbongPipit/IbongPipit.html'">SUSUNOD NA ARALIN ➡️</button>` 
+                    : `<button class="btn-custom btn-ready mt-4" onclick="resetQuiz()">ULITIN</button>`
+                }
+                <button class="btn-custom btn-ready mt-3" style="background-color: #e74c3c; box-shadow: 0 8px 0 #c0392b;" onclick="window.location.href='../Main.html'">HOME 🏠</button>
+            `;
+            document.getElementById('timer-display').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

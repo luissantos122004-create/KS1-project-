@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lola Interactive Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Alfabeto';
+            src: url('Alfabeto.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        :root {
+            --primary-font: 'Alfabeto', 'Comic Sans MS', cursive, sans-serif;
+            --main-theme: #004a8e;
+        }
+
+        body, html {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: var(--primary-font);
+            background: #418ace; transition: background 0.4s ease-in-out;
+            user-select: none;
+        }
+
+        .wrong-flash { background: #004a8e !important; transition: 0.2s; }
+
+        #transition-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999; display: flex;
+            justify-content: center; align-items: center; overflow: hidden;
+        }
+
+        .trans-bubble {
+            position: absolute; 
+            background-image: url('nganga2.png'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transform: scale(0);
+        }
+
+        @keyframes bubbleFill {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .blue-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #418ace 0%, #418ace 50%, #004a8e 100%);
+            z-index: 1; transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .particle-container { position: absolute; width: 100%; height: 100%; z-index: 2; overflow: hidden; }
+        
+        .particle {
+            position: absolute; bottom: 100px; 
+            background-image: url('nganga2.png'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.7; 
+            animation: rise linear infinite;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translateY(-120vh) translateX(-30px) rotate(360deg); opacity: 0; }
+        }
+
+        .floor {
+            position: absolute; bottom: 0; width: 100%; height: 100px;
+            background: #418ace; border-top: 8px solid #ffffff; z-index: 5;
+        }
+
+        .ui-wrapper {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.98); border: 12px solid var(--main-theme);
+            border-radius: 50px; padding: 40px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            max-width: 1000px; width: 95%; text-align: center; position: relative;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .zoom-out-wow { transform: scale(0) rotate(10deg); opacity: 0; }
+        .bounce-in-wow { animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .white-bg-active { background: #e0f2ff !important; }
+        .hide-bg { opacity: 0 !important; transform: scale(1.1); pointer-events: none; }
+
+        h1 { font-size: 3.5rem; color: var(--main-theme); font-weight: 700; }
+        .story-box {
+            font-size: 2.2rem; line-height: 1.4; background: #f0f8ff;
+            border-radius: 30px; border: 5px dashed var(--main-theme); position: relative;
+        }
+
+        .deped-logo { position: absolute; top: -75px; left: 40px; width: 140px; }
+        
+        #timer-display {
+            position: fixed; top: 20px; right: 20px; background: #ff4757; color: white;
+            padding: 10px 25px; border-radius: 50px; font-size: 2rem; font-weight: 700;
+            border: 4px solid white; z-index: 100;
+        }
+
+        .btn-custom {
+            font-size: 2.5rem; padding: 20px 60px; border-radius: 100px; border: none;
+            font-weight: 700; color: white; box-shadow: 0 10px 0 #002d5a; cursor: pointer;
+            font-family: var(--primary-font);
+        }
+        .btn-ready { background-color: var(--main-theme); }
+        .btn-ready:active { transform: translateY(8px); box-shadow: 0 2px 0 #002d5a; }
+
+        .btn-audio {
+            background: #418ace; color: white; border: none; border-radius: 50%;
+            width: 70px; height: 70px; font-size: 2rem; box-shadow: 0 6px 0 #002d5a;
+            margin-bottom: 10px; transition: 0.2s;
+        }
+
+        .btn-choice { 
+            background-color: white; color: var(--main-theme); border: 4px solid var(--main-theme); 
+            width: 100%; margin-bottom: 12px; text-align: left; padding: 12px 30px;
+            font-size: 2.2rem; border-radius: 30px; box-shadow: 0 8px 0 var(--main-theme);
+            transition: transform 0.2s; font-family: var(--primary-font);
+        }
+        
+        .choice-marker { font-weight: 700; margin-right: 15px; color: #000000; }
+        .btn-choice:hover:not(:disabled) { background-color: var(--main-theme); color: white; transform: translateX(10px); }
+
+        #message { font-size: 2.5rem; margin-top: 5px; min-height: 3rem; font-weight: 700; }
+        .hidden { display: none !important; }
+
+        .score-text { font-size: 4rem; color: #ff9f43; font-weight: 700; }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="transition-overlay"></div>
+
+    <div class="blue-container" id="main-bg">
+        <div class="particle-container" id="particle-box"></div>
+        <div class="floor"></div>
+    </div>
+
+    <div id="timer-display" class="hidden">05:00</div>
+
+    <div class="ui-wrapper">
+        <div class="main-card" id="card-container">
+            <img src="deped.png" class="deped-logo" alt="DepEd Logo" onerror="this.style.display='none'">
+            
+            <div id="content-welcome">
+                <h1 class="mb-5">Handa Ka Na Ba?</h1>
+                <button class="btn-custom btn-ready" onclick="triggerWowForStory()">MAGSIMULA!</button>
+            </div>
+
+            <div id="content-story" class="hidden">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1>Basahin Natin</h1>
+                    <button class="btn-audio" onclick="playVoice()">🔊</button>
+                </div>
+                
+                <div class="story-box p-4 mt-4 d-flex align-items-center justify-content-between text-start gap-4">
+                    <div>
+                        <p class="mb-0">
+                            May bunga ng nganga si Lola.<br>
+                            Kinain niya ang tatlo maghapon.<br>
+                            At may dalawa pang natirang nganga.<br>
+                            Nguya nang nguya si Lola ng nganga.<br>
+                            Naku! Pula na ang bunganga ni Lola.
+                        </p>
+                    </div>
+                    <img src="nganga1.png" alt="Lola Image" class="img-fluid rounded" style="max-height: 300px; border: 4px solid var(--main-theme); border-radius: 20px;" onerror="this.style.display='none'">
+                </div>
+                <button class="btn-custom btn-ready mt-5" onclick="triggerBubbleTransition()">MAGPATULOY </button>
+            </div>
+
+            <div id="content-quiz" class="hidden">
+                <div class="mb-4">
+                    <h2 id="question-text" style="font-size: 2.8rem; font-weight: 700;"></h2>
+                </div>
+                <div id="choices-container"></div>
+                <div id="message" class="fw-bold"></div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="storyVoice" src="lola_voice.m4a"></audio>
+    <audio id="ding" src="https://www.myinstants.com/media/sounds/ding-sound-effect_1.mp3"></audio>
+    <audio id="buzzer" src="https://www.myinstants.com/media/sounds/spongebob-fail.mp3"></audio>
+
+    <script>
+        // In-update na listahan ng mga tanong base sa iyong hiling
+        const questions = [
+            { q: "Anong bunga ang nasa kuwento?", opt: ["Mangga", "Nganga", "Rambutan", "Santol"], ans: 1 },
+            { q: "Kanino ang mga bunga ng nganga?", opt: ["Ate", "Kuya", "Lola", "Lolo"], ans: 2 },
+            { q: "Ilang nganga ang kinain ni lola maghapon?", opt: ["2", "3", "4", "5"], ans: 1 },
+            { q: "Ano ang nangyari sa bibig ni Lola pagkakain ng nganga?", opt: ["Namaga", "Nanilaw", "Pumula", "Pumuti"], ans: 2 },
+            { q: "Kung kumain si lola ng 3 nganga maghapon at may natirang 2, ilan kaya lahat ang mga nganga?", opt: ["2", "3", "4", "5"], ans: 3 }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let timeLeft = 300; 
+        let timerStarted = false;
+        let retakeCount = 0;
+        let timerInterval;
+
+        function triggerBubbleTransition() {
+            const overlay = document.getElementById('transition-overlay');
+            const particleCount = 15;
+            document.getElementById('ding').play();
+            for (let i = 0; i < particleCount; i++) {
+                const b = document.createElement('div');
+                b.className = 'trans-bubble';
+                const size = Math.random() * 300 + 200;
+                b.style.width = size + 'px'; b.style.height = size + 'px';
+                b.style.left = Math.random() * 100 + '%'; b.style.top = Math.random() * 100 + '%';
+                b.style.animation = `bubbleFill 1.2s ease-in-out forwards`;
+                b.style.animationDelay = (Math.random() * 0.4) + 's';
+                overlay.appendChild(b);
+            }
+            setTimeout(() => { startQuiz(); }, 700);
+            setTimeout(() => { overlay.innerHTML = ''; }, 2000);
+        }
+
+        function shootConfetti() {
+            confetti({
+                particleCount: 150, spread: 70, origin: { y: 0.6 },
+                colors: ['#004a8e', '#418ace', '#ffffff', '#f1c40f'] 
+            });
+        }
+
+        function triggerWrongEffect() {
+            document.body.classList.add('wrong-flash');
+            setTimeout(() => document.body.classList.remove('wrong-flash'), 400);
+        }
+
+        function createParticle() {
+            const container = document.getElementById('particle-box');
+            const b = document.createElement('div');
+            b.className = 'particle';
+            const size = Math.random() * 60 + 40 + 'px'; 
+            b.style.width = size; b.style.height = size;
+            b.style.left = Math.random() * 100 + '%';
+            b.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            container.appendChild(b);
+            setTimeout(() => b.remove(), 10000);
+        }
+        setInterval(createParticle, 800);
+
+        function triggerWowForStory() {
+            document.getElementById('ding').play();
+            const card = document.getElementById('card-container');
+            card.classList.add('zoom-out-wow');
+            document.getElementById('main-bg').classList.add('hide-bg');
+            document.body.classList.add('white-bg-active');
+            setTimeout(() => {
+                document.getElementById('content-welcome').classList.add('hidden');
+                document.getElementById('content-story').classList.remove('hidden');
+                card.classList.remove('zoom-out-wow');
+                card.classList.add('bounce-in-wow');
+            }, 700);
+        }
+
+        function startQuiz() {
+            document.getElementById('content-story').classList.add('hidden');
+            document.getElementById('content-quiz').classList.remove('hidden');
+            document.getElementById('timer-display').classList.remove('hidden');
+            if(!timerStarted) { startTimer(); timerStarted = true; }
+            loadQuestion();
+        }
+
+        function resetQuiz() {
+            retakeCount++;
+            currentQ = 0;
+            score = 0;
+            timeLeft = 300;
+            clearInterval(timerInterval);
+            
+            // Restore Quiz HTML Structure
+            document.getElementById('content-quiz').innerHTML = `
+                <div class="mb-4"><h2 id="question-text" style="font-size: 2.8rem; font-weight: 700;"></h2></div>
+                <div id="choices-container"></div><div id="message" class="fw-bold"></div>
+            `;
+            timerStarted = false;
+
+            document.getElementById('content-quiz').classList.add('hidden');
+            document.getElementById('content-welcome').classList.remove('hidden');
+            document.getElementById('card-container').classList.remove('zoom-out-wow', 'bounce-in-wow');
+            document.getElementById('main-bg').classList.remove('hide-bg');
+            document.body.classList.remove('white-bg-active');
+            document.getElementById('timer-display').classList.add('hidden');
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    let mins = Math.floor(timeLeft / 60);
+                    let secs = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    clearInterval(timerInterval); finish();
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            const data = questions[currentQ];
+            document.getElementById('question-text').innerHTML = `<span style="color:#000000">${currentQ + 1}.</span> ${data.q}`;
+            const container = document.getElementById('choices-container');
+            container.innerHTML = "";
+            document.getElementById('message').innerText = "";
+            
+            data.opt.forEach((val, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-choice";
+                const letter = String.fromCharCode(65 + idx);
+                btn.innerHTML = `<span class="choice-marker">${letter}.</span> ${val}`;
+                
+                btn.onclick = () => {
+                    if(idx === data.ans) {
+                        score++; shootConfetti();
+                        document.getElementById('ding').play();
+                        document.getElementById('message').innerHTML = "<span style='color:#2ecc71'>⭐ TAMA! ⭐</span>";
+                    } else {
+                        triggerWrongEffect();
+                        document.getElementById('buzzer').currentTime = 0;
+                        document.getElementById('buzzer').play();
+                        btn.classList.add('shake');
+                        document.getElementById('message').innerHTML = "<span style='color:#e74c3c'>❌ Mali! ❌</span>";
+                    }
+                    const allBtns = container.querySelectorAll('.btn-choice');
+                    allBtns.forEach(b => b.disabled = true);
+                    setTimeout(() => {
+                        currentQ++;
+                        if(currentQ < questions.length) loadQuestion();
+                        else finish();
+                    }, 1500);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function playVoice() {
+            const v = document.getElementById('storyVoice');
+            v.currentTime = 0; v.play();
+        }
+
+        function finish() {
+            const quizNode = document.getElementById('content-quiz');
+            const isPerfect = (score >= questions.length);
+            if(isPerfect) { 
+                shootConfetti(); setTimeout(shootConfetti, 500); 
+                localStorage.setItem('story_completed_nganga', 'true');
+            }
+
+            // SAVE TO LEADERBOARD
+            const currentUser = localStorage.getItem('currentUser');
+            if(currentUser) {
+                let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || {};
+                if(!leaderboard[currentUser]) leaderboard[currentUser] = {};
+                
+                const currentData = leaderboard[currentUser]['nganga'] || { score: 0, retakes: 0 };
+                let newScore = isPerfect ? score : currentData.score;
+                
+                leaderboard[currentUser]['nganga'] = { score: newScore, retakes: retakeCount };
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            }
+            
+            quizNode.innerHTML = `
+                <h1 class="mb-4">${isPerfect ? '🏆 NAPAKAHUSAY! 🏆' : 'KAYA MO \'YAN!'}</h1>
+                <div class="score-text mb-4">SCORE: ${score}/${questions.length}</div>
+                <div style="font-size: 2rem; color: #004a8e;" class="mb-4">Bilang ng Ulit: ${retakeCount}</div>
+                <p style="font-size: 2rem;">${isPerfect ? 'Handa ka na para sa susunod na aralin!' : 'Subukan muli para makuha ang perpektong score.'}</p>
+                <div class="d-flex flex-column gap-3 align-items-center">
+                    ${isPerfect 
+                        ? `<button class="btn-custom btn-ready mt-4" onclick="window.location.href='../Main.html'">SUSUNOD NA ARALIN ➡️</button>` 
+                        : `<button class="btn-custom btn-ready mt-4" onclick="resetQuiz()">MAGLARO MULI 🔄</button>`
+                    }
+                    <button class="btn-custom btn-ready mt-3" style="background-color: #e74c3c; box-shadow: 0 8px 0 #c0392b;" onclick="window.location.href='../Main.html'">HOME 🏠</button>
+                </div>
+            `;
+            document.getElementById('timer-display').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

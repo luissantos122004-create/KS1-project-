@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayungin Interactive Quiz - DepEd Edition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary-font: 'Alfabeto', 'Alfabeto', cursive, Alfabeto;
+            --ocean-dark: #003049;
+            --river-light: #669bbc;
+        }
+
+        body, html {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: var(--primary-font);
+            background: var(--ocean-dark); transition: background 0.4s ease-in-out;
+            user-select: none;
+        }
+
+        .wrong-flash { background: #ff4757 !important; transition: 0.2s; }
+
+        #transition-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999; display: flex;
+            justify-content: center; align-items: center; overflow: hidden;
+        }
+
+        .trans-bubble {
+            position: absolute; background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%; transform: scale(0);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        @keyframes bubbleFill {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .ocean-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #8ecae6 0%, #219ebc 50%, #3498db 100%);
+            z-index: 1; transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .bubble-container { position: absolute; width: 100%; height: 100%; z-index: 2; overflow: hidden; }
+        .bubble {
+            position: absolute; bottom: -50px; background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 50%; animation: rise linear infinite;
+        }
+        @keyframes rise {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translateY(-120vh) translateX(-30px); opacity: 0; }
+        }
+
+        /* FISH STYLING */
+        .fish-wrapper {
+            position: absolute; width: 150px; z-index: 3;
+            animation: swim-loop linear infinite;
+        }
+
+        .bg-fish { width: 100%; opacity: 0.9; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); }
+
+        @keyframes swim-loop {
+            0% { left: -200px; transform: scaleX(1); }
+            100% { left: 100%; transform: scaleX(1); }
+        }
+
+        .seabed {
+            position: absolute; bottom: 0; width: 100%; height: 100px;
+            background: #9c6644; border-top: 8px solid #7f5539; z-index: 5;
+        }
+
+        .ui-wrapper {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.98); border: 12px solid #2d75d4;
+            border-radius: 50px; padding: 40px; box-shadow: 0 25px 50px rgba(70, 132, 204, 0.5);
+            max-width: 1100px; width: 95%; text-align: center; position: relative;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .zoom-out-wow { transform: scale(0) rotate(10deg); opacity: 0; }
+        .bounce-in-wow { animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .white-bg-active { background: #f0faff !important; }
+        .hide-ocean { opacity: 0 !important; transform: scale(1.1); pointer-events: none; }
+
+        h1 { font-size: 3.2rem; color: #023047; font-weight: 700; }
+        
+        .story-container {
+            display: flex; align-items: center; justify-content: center;
+            gap: 30px; margin-top: 20px;
+        }
+
+        .story-box {
+            flex: 1; font-size: 1.9rem; line-height: 1.5; background: #fdf0d5;
+            border-radius: 30px; border: 5px dashed #669bbc; color: #333; padding: 30px;
+        }
+
+        .story-image-box { flex: 0.8; max-width: 400px; }
+        .story-image-box img { width: 100%; height: auto; border-radius: 20px; filter: drop-shadow(5px 5px 15px rgba(0,0,0,0.1)); }
+
+        .deped-logo { position: absolute; top: -75px; left: 40px; width: 140px; }
+        
+        #timer-display {
+            position: fixed; top: 20px; right: 20px; background: #d62828; color: white;
+            padding: 10px 25px; border-radius: 50px; font-size: 2rem; font-weight: 700;
+            border: 4px solid white; z-index: 100;
+        }
+
+        .btn-custom {
+            font-size: 2.5rem; padding: 15px 50px; border-radius: 100px; border: none;
+            font-weight: 700; color: white; box-shadow: 0 10px 0 #001524; cursor: pointer;
+            font-family: var(--primary-font); text-transform: uppercase;
+        }
+        .btn-ready { background-color: #219ebc; }
+        .btn-ready:active { transform: translateY(8px); box-shadow: 0 2px 0 #001524; }
+
+        .btn-audio {
+            background: #fb8500; color: white; border: none; border-radius: 50%;
+            width: 70px; height: 70px; font-size: 2rem; box-shadow: 0 6px 0 #e67e22;
+        }
+
+        .btn-choice { 
+            background-color: white; color: #023047; border: 4px solid #023047; 
+            width: 100%; margin-bottom: 12px; text-align: left; padding: 12px 30px;
+            font-size: 2rem; border-radius: 30px; box-shadow: 0 8px 0 #023047;
+            transition: transform 0.2s; font-family: var(--primary-font);
+        }
+        
+        .choice-marker { font-weight: 700; margin-right: 15px; color: #000000; }
+        .btn-choice:hover:not(:disabled) { background-color: #023047; color: white; transform: translateX(10px); }
+
+        #message { font-size: 2.5rem; margin-top: 5px; min-height: 3rem; font-weight: 700; }
+        .hidden { display: none !important; }
+
+        .score-text { font-size: 4rem; color: #fb8500; font-weight: 700; }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="transition-overlay"></div>
+
+    <div class="ocean-container" id="ocean-bg">
+        <div class="bubble-container" id="bubble-box"></div>
+        <div id="fish-tank"></div>
+        <div class="seabed"></div>
+    </div>
+
+    <div id="timer-display" class="hidden">05:00</div>
+
+    <div class="ui-wrapper">
+        <div class="main-card" id="card-container">
+            <img src="deped.png" class="deped-logo" alt="DepEd Logo">
+            
+            <div id="content-welcome">
+                <h1 class="mb-5">Handa Ka Na Ba sa Ayungin?</h1>
+                <button class="btn-custom btn-ready" onclick="triggerWowForStory()">MAGSIMULA</button>
+            </div>
+
+            <div id="content-story" class="hidden">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1>Ang Ayungin</h1>
+                    <button class="btn-audio" onclick="playVoice()">🔊</button>
+                </div>
+                
+                <div class="story-container">
+                    <div class="story-box text-start">
+                        Ang <b>Ayungin</b> ay isdang tabang.<br>
+                        Maliliit at makikintab ang kaniyang kaliskis.<br>
+                        Matutulis din ang mga palikpik.<br>
+                        Sampung piraso ang mga ayungin sa bilao.
+                    </div>
+                    <div class="story-image-box">
+                        <img src="ayungin.png" alt="Ayungin Fish" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2613/2613110.png'">
+                    </div>
+                </div>
+
+                <button class="btn-custom btn-ready mt-5" onclick="triggerBubbleTransition()">MAGPATULOY</button>
+            </div>
+
+            <div id="content-quiz" class="hidden">
+                <div class="mb-3">
+                    <h2 id="question-text" style="font-size: 2.5rem; font-weight: 700;"></h2>
+                </div>
+                <div id="choices-container"></div>
+                <div id="message" class="fw-bold"></div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="storyVoice" src="ayunginvoice.m4a"></audio>
+    <audio id="ding" src="https://www.myinstants.com/media/sounds/ding-sound-effect_1.mp3"></audio>
+    <audio id="buzzer" src="https://www.myinstants.com/media/sounds/spongebob-fail.mp3"></audio>
+
+    <script>
+        // GENERATE 10 SWIMMING FISH
+        const fishTank = document.getElementById('fish-tank');
+        for (let i = 0; i < 10; i++) {
+            const fishWrap = document.createElement('div');
+            fishWrap.className = 'fish-wrapper';
+            
+            // Randomize position and animation
+            const topPos = Math.random() * 70 + 5; // 5% to 75% height
+            const duration = Math.random() * 10 + 8; // 8s to 18s speed
+            const delay = Math.random() * 10; // Random start delay
+            const scale = Math.random() * 0.5 + 0.5; // Random size (50% to 100%)
+
+            fishWrap.style.top = topPos + '%';
+            fishWrap.style.animationDuration = duration + 's';
+            fishWrap.style.animationDelay = -delay + 's'; // Negative delay starts them mid-swim
+            fishWrap.style.width = (180 * scale) + 'px';
+            fishWrap.style.opacity = Math.random() * 0.4 + 0.6; // Variety in visibility
+
+            fishWrap.innerHTML = `<img src="ayungin1.png" class="bg-fish" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2613/2613110.png'">`;
+            fishTank.appendChild(fishWrap);
+        }
+
+        const questions = [
+            { q: "Ano ang maliit na isdang tabang sa kuwento?", opt: ["Ayungin", "Biya", "Dilis", "Tawilis"], ans: 0 },
+            { q: "Ano ang makintab sa Ayungin?", opt: ["Buntot", "Kaliskis", "Mata", "Palikpik"], ans: 1 },
+            { q: "Ano ang matulis sa Ayungin?", opt: ["Buntot", "Kaliskis", "Mata", "Palikpik"], ans: 3 },
+            { q: "Ilang piraso ang mga Ayungin sa bilao?", opt: ["Anim", "Lima", "Pito", "Sampu"], ans: 3 },
+            { q: "Kung ito ay isdang tabang, saan maaring mahuli?", opt: ["Dagat", "Ilog", "Lawa", "Sapa"], ans: 1 }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let timeLeft = 300;
+        let timerStarted = false;
+
+        function triggerBubbleTransition() {
+            const overlay = document.getElementById('transition-overlay');
+            document.getElementById('ding').play();
+            for (let i = 0; i < 15; i++) {
+                const b = document.createElement('div');
+                b.className = 'trans-bubble';
+                const size = Math.random() * 300 + 200;
+                b.style.width = size + 'px'; b.style.height = size + 'px';
+                b.style.left = Math.random() * 100 + '%';
+                b.style.top = Math.random() * 100 + '%';
+                b.style.animation = `bubbleFill 1.2s ease-in-out forwards`;
+                b.style.animationDelay = (Math.random() * 0.4) + 's';
+                overlay.appendChild(b);
+            }
+            setTimeout(() => { startQuiz(); }, 700);
+            setTimeout(() => { overlay.innerHTML = ''; }, 2000);
+        }
+
+        function shootConfetti() {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#219ebc', '#fb8500', '#ffffff'] });
+        }
+
+        function triggerWrongEffect() {
+            document.body.classList.add('wrong-flash');
+            setTimeout(() => document.body.classList.remove('wrong-flash'), 400);
+        }
+
+        function triggerWowForStory() {
+            document.getElementById('ding').play();
+            const card = document.getElementById('card-container');
+            card.classList.add('zoom-out-wow');
+            document.getElementById('ocean-bg').classList.add('hide-ocean');
+            document.body.classList.add('white-bg-active');
+            setTimeout(() => {
+                document.getElementById('content-welcome').classList.add('hidden');
+                document.getElementById('content-story').classList.remove('hidden');
+                card.classList.remove('zoom-out-wow');
+                card.classList.add('bounce-in-wow');
+            }, 700);
+        }
+
+        function startQuiz() {
+            document.getElementById('storyVoice').pause();
+            document.getElementById('content-story').classList.add('hidden');
+            document.getElementById('content-quiz').classList.remove('hidden');
+            document.getElementById('timer-display').classList.remove('hidden');
+            if(!timerStarted) { startTimer(); timerStarted = true; }
+            loadQuestion();
+        }
+
+        function startTimer() {
+            const timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    let mins = Math.floor(timeLeft / 60);
+                    let secs = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    clearInterval(timerInterval);
+                    finish();
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            const data = questions[currentQ];
+            document.getElementById('question-text').innerHTML = `<span style="color:#023047">${currentQ + 1}.</span> ${data.q}`;
+            const container = document.getElementById('choices-container');
+            container.innerHTML = "";
+            document.getElementById('message').innerText = "";
+            
+            data.opt.forEach((val, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-choice";
+                const letter = String.fromCharCode(65 + idx);
+                btn.innerHTML = `<span class="choice-marker">${letter}.</span> ${val}`;
+                
+                btn.onclick = () => {
+                    if(idx === data.ans) {
+                        score++;
+                        shootConfetti();
+                        document.getElementById('ding').play();
+                        document.getElementById('message').innerHTML = "<span style='color:#2ecc71'>TAMA</span>";
+                    } else {
+                        triggerWrongEffect();
+                        document.getElementById('buzzer').currentTime = 0;
+                        document.getElementById('buzzer').play();
+                        btn.classList.add('shake');
+                        document.getElementById('message').innerHTML = "<span style='color:#e74c3c'>MALI</span>";
+                    }
+                    const allBtns = container.querySelectorAll('.btn-choice');
+                    allBtns.forEach(b => b.disabled = true);
+                    setTimeout(() => {
+                        currentQ++;
+                        if(currentQ < questions.length) loadQuestion();
+                        else finish();
+                    }, 1500);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function playVoice() {
+            const v = document.getElementById('storyVoice');
+            v.currentTime = 0; v.play();
+        }
+
+        function finish() {
+            const quizNode = document.getElementById('content-quiz');
+            const isPerfect = (score >= questions.length);
+            if(isPerfect) {
+                shootConfetti();
+                const currentUser = localStorage.getItem('currentUser');
+                localStorage.setItem(`story_completed_${currentUser}_ayungin`, 'true');
+            }
+            
+            let resultHTML = `
+                <h1 class="mb-4">${isPerfect ? 'NAPAKAHUSAY' : 'KAYA MO YAN'}</h1>
+                <div class="score-text mb-4">SCORE: ${score}/${questions.length}</div>
+                <div class="d-flex flex-column gap-3 align-items-center">
+                    ${isPerfect 
+                        ? `<button class="btn-custom btn-ready mt-4" onclick="window.location.href='../Main.html'">SUSUNOD NA ARALIN ➡️</button>` 
+                        : `<button class="btn-custom btn-ready mt-4" onclick="location.reload()">ULITIN 🔄</button>`
+                    }
+                </div>
+            `;
+            quizNode.innerHTML = resultHTML;
+            document.getElementById('timer-display').classList.add('hidden');
+        }
+
+        setInterval(() => {
+            const b = document.createElement('div');
+            b.className = 'bubble';
+            const size = Math.random() * 50 + 15 + 'px';
+            b.style.width = size; b.style.height = size;
+            b.style.left = Math.random() * 100 + '%';
+            b.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            document.getElementById('bubble-box').appendChild(b);
+            setTimeout(() => b.remove(), 10000);
+        }, 800);
+    </script>
+</body>
+</html>

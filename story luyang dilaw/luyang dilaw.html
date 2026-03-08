@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luyang Dilaw Interactive Quiz - DepEd Edition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary-font: 'Alfabeto', cursive, sans-serif;
+            --theme-dark: #d35400;   /* Dark Orange */
+            --theme-main: #f39c12;   /* Yellow Orange */
+            --theme-light: #fef9e7;  /* Very Light Yellow */
+            --theme-accent: #f1c40f; /* Bright Yellow */
+        }
+
+        body, html {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: var(--primary-font);
+            background: #fdf2e9; transition: background 0.4s ease-in-out;
+            user-select: none;
+        }
+
+        .wrong-flash { background: #ff4757 !important; transition: 0.2s; }
+
+        /* --- BACKGROUNDS (GOLDEN SPARKLES) --- */
+        .theme-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, var(--theme-accent) 0%, var(--theme-main) 50%, var(--theme-dark) 100%);
+            z-index: 1; transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .sparkle-container { position: absolute; width: 100%; height: 100%; z-index: 2; overflow: hidden; pointer-events: none;}
+        .sparkle {
+            position: absolute; bottom: -50px; background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%; animation: floatUp linear infinite;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 0.8; }
+            100% { transform: translateY(-120vh) scale(1.5); opacity: 0; }
+        }
+
+        /* --- UI WRAPPER --- */
+        .ui-wrapper {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.98); border: 12px solid var(--theme-dark);
+            border-radius: 50px; padding: 40px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            max-width: 1000px; width: 95%; text-align: center; position: relative;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .deped-logo { 
+            position: absolute; top: -75px; left: 40px; width: 140px; 
+            z-index: 20; transition: all 0.3s ease;
+        }
+
+        .zoom-out-wow { transform: scale(0) rotate(10deg); opacity: 0; }
+        .bounce-in-wow { animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .white-bg-active { background: #ffffff !important; }
+        .hide-bg { opacity: 0 !important; transform: scale(1.1); pointer-events: none; }
+
+        h1 { font-size: 3.5rem; color: var(--theme-dark); font-weight: 700; font-family: var(--primary-font); }
+        
+        .story-box {
+            font-size: 2.2rem; line-height: 1.4; background: var(--theme-light);
+            border-radius: 30px; border: 5px dashed var(--theme-dark); position: relative;
+        }
+
+        .story-img {
+            max-width: 250px; 
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        #timer-display {
+            position: fixed; top: 20px; right: 20px; background: #ff4757; color: white;
+            padding: 10px 25px; border-radius: 50px; font-size: 2rem; font-weight: 700;
+            border: 4px solid white; z-index: 100;
+        }
+
+        .btn-custom {
+            font-size: 2.5rem; padding: 20px 60px; border-radius: 100px; border: none;
+            font-weight: 700; color: white; box-shadow: 0 10px 0 #a04000; cursor: pointer;
+            font-family: var(--primary-font);
+        }
+        .btn-ready { background-color: var(--theme-main); }
+        .btn-ready:active { transform: translateY(8px); box-shadow: 0 2px 0 #a04000; }
+
+        .btn-audio {
+            background: var(--theme-main); color: white; border: none; border-radius: 50%;
+            width: 70px; height: 70px; font-size: 2rem; box-shadow: 0 6px 0 #a04000;
+            margin-bottom: 10px; transition: 0.2s;
+        }
+
+        .btn-choice { 
+            background-color: white; color: var(--theme-dark); border: 4px solid var(--theme-dark); 
+            width: 100%; margin-bottom: 12px; text-align: left; padding: 12px 30px;
+            font-size: 2.2rem; border-radius: 30px; box-shadow: 0 8px 0 var(--theme-dark);
+            transition: transform 0.2s; font-family: var(--primary-font);
+        }
+        
+        .choice-marker { font-weight: 700; margin-right: 15px; color: #000000; font-family: var(--primary-font); }
+        .btn-choice:hover:not(:disabled) { background-color: var(--theme-dark); color: white; transform: translateX(10px); }
+
+        #message { font-size: 2.5rem; margin-top: 5px; min-height: 3rem; font-weight: 700; font-family: var(--primary-font); }
+        .hidden { display: none !important; }
+
+        /* --- DRAWING SECTION --- */
+        #drawing-area {
+            position: relative; width: 600px; height: 300px; margin: 10px auto;
+            border: 4px dashed #ccc; background: #fff; touch-action: none;
+            overflow: hidden; border-radius: 20px;
+        }
+        #trace-canvas { position: absolute; top: 0; left: 0; z-index: 2; cursor: none; }
+
+        .draw-toolbar { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
+        .tool-btn {
+            background: white; border: 4px solid var(--theme-dark); border-radius: 15px;
+            padding: 8px 20px; font-size: 1.2rem; cursor: pointer; transition: 0.2s;
+            font-weight: 700; font-family: var(--primary-font);
+        }
+        .tool-btn.active { background: var(--theme-dark); color: white; transform: scale(1.05); }
+
+        .btn-submit { background-color: #2ecc71; box-shadow: 0 8px 0 #27ae60; margin-top: 20px; }
+        .btn-submit:active { transform: translateY(4px); box-shadow: 0 4px 0 #27ae60; }
+
+        #custom-cursor { 
+            position: fixed; pointer-events: none; z-index: 1000; font-size: 3rem;
+            width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+        }
+        .cursor-pencil { transform: translate(-5px, -35px); } 
+        .cursor-eraser { transform: translate(-25px, -25px); }
+
+        .score-text { font-size: 4rem; color: var(--theme-main); font-weight: 700; font-family: var(--primary-font); }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="theme-container" id="main-bg">
+        <div class="sparkle-container" id="sparkle-box"></div>
+    </div>
+
+    <div id="custom-cursor" class="hidden cursor-pencil">✏️</div>
+    <div id="timer-display" class="hidden">05:00</div>
+
+    <div class="ui-wrapper">
+        <div class="main-card" id="card-container">
+            
+            <img src="deped.png" class="deped-logo" alt="DepEd Logo">
+
+            <div id="content-welcome">
+                <h1 class="mb-5" style="color: #d35400;">Handa Ka Na Ba?</h1>
+                <button class="btn-custom btn-ready" onclick="triggerWowForStory()">MAGSIMULA!</button>
+            </div>
+
+            <div id="content-story" class="hidden">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1>Luyang Dilaw</h1>
+                    <button class="btn-audio" onclick="document.getElementById('ding').play()">🔊</button>
+                </div>
+                
+                <div class="story-box p-4 mt-4 d-flex align-items-center justify-content-between text-start gap-4">
+                    <div>
+                        Bumili si lola ng apat na luyang dilaw. Sampung piso ang isang piraso. Ilalaga niya ang mga luya. Gamot sa sumasakit na kasukasuan.
+                    </div>
+                    <img src="luya.png" alt="Luyang Dilaw" class="story-img">
+                </div>
+
+                <button class="btn-custom btn-ready mt-5" onclick="startQuiz()">MAGPATULOY </button>
+            </div>
+
+            <div id="content-quiz" class="hidden">
+                <div class="mb-3">
+                    <h2 id="question-text" style="font-size: 2.8rem; font-weight: 700; color: #004a8e;"></h2>
+                </div>
+                
+                <div id="drawing-container" class="hidden">
+                    <div id="drawing-area">
+                        <canvas id="trace-canvas" width="600" height="300"></canvas>
+                    </div>
+                    <div class="draw-toolbar">
+                        <button id="btn-pencil" class="tool-btn active" onclick="setTool('pencil')">✏️ Lapis</button>
+                        <button id="btn-eraser" class="tool-btn" onclick="setTool('eraser')">🧽 Eraser</button>
+                        <button class="tool-btn" style="border-color: #ff4757; color: #ff4757;" onclick="clearCanvas()">🗑️ Ulitin</button>
+                    </div>
+                    <button class="btn-custom btn-submit" onclick="submitDrawing()">IPASA ANG GAWA 📄</button>
+                </div>
+
+                <div id="choices-container"></div>
+                <div id="message" class="fw-bold"></div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="ding" src="https://www.myinstants.com/media/sounds/ding-sound-effect_1.mp3"></audio>
+    <audio id="buzzer" src="https://www.myinstants.com/media/sounds/spongebob-fail.mp3"></audio>
+
+    <script>
+        // MGA TANONG AT SAGOT MULA SA MODULE
+        const questions = [
+            { q: "Sino ang tauhan sa kuwento?", opt: ["ate", "lola", "lolo"], ans: 1 },
+            { q: "Ano ang binili ni lola?", opt: ["lobo", "lugaw", "luya"], ans: 2 },
+            { q: "Ilan ang biniling luyang dilaw?", opt: ["apat", "lima", "tatlo"], ans: 0 },
+            { q: "Magkano ang isang pirasong luya?", opt: ["₱ 10.00", "₱ 20.00", "₱ 5.00"], ans: 0 },
+            { q: "Magkano ang binayaran ni lola?", opt: ["₱ 20.00", "₱ 30.00", "₱ 40.00"], ans: 2 },
+            { q: "Iguhit ang Luyang Dilaw para manalo!", type: "draw" }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let timeLeft = 300;
+        let timerStarted = false;
+        let retakeCount = 0;
+        let timerInterval;
+        let canvas, ctx, drawing = false;
+        let currentTool = 'pencil';
+        let pointsDrawn = 0;
+        let canvasInitialized = false;
+        const customCursor = document.getElementById('custom-cursor');
+
+        // SPARKLE EFFECT
+        function createSparkles() {
+            const box = document.getElementById('sparkle-box');
+            if(!box) return;
+            const b = document.createElement('div');
+            b.className = 'sparkle';
+            const size = Math.random() * 20 + 10 + 'px';
+            b.style.width = size; b.style.height = size;
+            b.style.left = Math.random() * 100 + '%';
+            b.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            box.appendChild(b);
+            setTimeout(() => b.remove(), 10000);
+        }
+        let sparkleInterval = setInterval(createSparkles, 800);
+
+        function shootConfetti() {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#d35400', '#f39c12', '#f1c40f', '#004a8e']
+            });
+        }
+
+        function triggerWrongEffect() {
+            document.body.classList.add('wrong-flash');
+            setTimeout(() => document.body.classList.remove('wrong-flash'), 400);
+        }
+
+        function initCanvas() {
+            if (canvasInitialized) return;
+            canvas = document.getElementById('trace-canvas');
+            if (!canvas) return;
+            ctx = canvas.getContext('2d');
+            ctx.lineCap = "round"; ctx.lineJoin = "round";
+            setTool('pencil');
+
+            const moveCursor = (e) => {
+                customCursor.style.left = (e.clientX || e.pageX) + "px";
+                customCursor.style.top = (e.clientY || e.pageY) + "px";
+            };
+
+            const startDraw = (e) => { drawing = true; draw(e); };
+            const stopDraw = () => { drawing = false; ctx.beginPath(); };
+
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('mousemove', (e) => { moveCursor(e); draw(e); });
+            window.addEventListener('mouseup', stopDraw);
+            canvas.addEventListener('touchstart', (e) => { 
+                e.preventDefault(); moveCursor(e.touches[0]); startDraw(e.touches[0]); 
+            });
+            canvas.addEventListener('touchmove', (e) => { 
+                e.preventDefault(); moveCursor(e.touches[0]); draw(e.touches[0]); 
+            });
+            canvas.addEventListener('touchend', stopDraw);
+            canvas.addEventListener('mouseenter', () => customCursor.classList.remove('hidden'));
+            canvas.addEventListener('mouseleave', () => customCursor.classList.add('hidden'));
+            canvasInitialized = true;
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.getElementById('btn-pencil').classList.toggle('active', tool === 'pencil');
+            document.getElementById('btn-eraser').classList.toggle('active', tool === 'eraser');
+            if (tool === 'pencil') {
+                ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = "#004a8e"; ctx.lineWidth = 15;
+                customCursor.innerHTML = "✏️"; customCursor.className = "cursor-pencil";
+            } else {
+                ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 30;
+                customCursor.innerHTML = "🧽"; customCursor.className = "cursor-eraser";
+            }
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.pageX) - rect.left;
+            const y = (e.clientY || e.pageY) - rect.top;
+            ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y);
+            if(currentTool === 'pencil') pointsDrawn++;
+        }
+
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); pointsDrawn = 0; }
+
+        function submitDrawing() {
+            if (pointsDrawn < 50) {
+                document.getElementById('message').innerHTML = "<span style='color:#e67e22'>Iguhit mo muna ang Luya! 🥔</span>";
+                return;
+            }
+            score++;
+            shootConfetti();
+            document.getElementById('ding').play();
+            document.getElementById('message').innerHTML = "<span style='color:#2ecc71'>✨ NAPAKAGALING NA GAWA! ✨</span>";
+            customCursor.classList.add('hidden');
+            setTimeout(finish, 1500);
+        }
+
+        function triggerWowForStory() {
+            document.getElementById('ding').play();
+            const card = document.getElementById('card-container');
+            
+            card.classList.add('zoom-out-wow');
+            setTimeout(() => {
+                document.getElementById('content-welcome').classList.add('hidden');
+                document.getElementById('content-story').classList.remove('hidden');
+                card.classList.remove('zoom-out-wow');
+                card.classList.add('bounce-in-wow');
+            }, 700);
+        }
+
+        function startQuiz() {
+            document.getElementById('ding').play();
+            
+            // Stop generating sparkles
+            clearInterval(sparkleInterval);
+            
+            // Apply requested design changes: white background, blue borders
+            document.body.style.background = '#ffffff';
+            document.getElementById('card-container').style.borderColor = '#004a8e';
+            
+            // Hide the background completely
+            document.getElementById('main-bg').style.display = 'none';
+
+            document.getElementById('content-story').classList.add('hidden');
+            document.getElementById('content-quiz').classList.remove('hidden');
+            document.getElementById('timer-display').classList.remove('hidden');
+            
+            if(!timerStarted) { startTimer(); timerStarted = true; }
+            loadQuestion();
+        }
+
+        function resetQuiz() {
+            retakeCount++;
+            currentQ = 0;
+            score = 0;
+            pointsDrawn = 0;
+            
+            // Restore Quiz HTML Structure
+            document.getElementById('content-quiz').innerHTML = `
+                <div class="mb-3"><h2 id="question-text" style="font-size: 2.8rem; font-weight: 700; color: #004a8e;"></h2></div>
+                <div id="drawing-container" class="hidden">
+                    <div id="drawing-area"><canvas id="trace-canvas" width="600" height="300"></canvas></div>
+                    <div class="draw-toolbar">
+                        <button id="btn-pencil" class="tool-btn active" onclick="setTool('pencil')">✏️ Lapis</button>
+                        <button id="btn-eraser" class="tool-btn" onclick="setTool('eraser')">🧽 Eraser</button>
+                        <button class="tool-btn" style="border-color: #ff4757; color: #ff4757;" onclick="clearCanvas()">🗑️ Ulitin</button>
+                    </div>
+                    <button class="btn-custom btn-submit" onclick="submitDrawing()">IPASA ANG GAWA 📄</button>
+                </div>
+                <div id="choices-container"></div><div id="message" class="fw-bold"></div>
+            `;
+            canvasInitialized = false;
+            timeLeft = 300;
+            clearInterval(timerInterval);
+            timerStarted = false;
+            sparkleInterval = setInterval(createSparkles, 800);
+
+            document.getElementById('content-quiz').classList.add('hidden');
+            document.getElementById('content-welcome').classList.remove('hidden');
+            document.getElementById('card-container').classList.remove('zoom-out-wow', 'bounce-in-wow');
+            document.getElementById('main-bg').style.display = 'block';
+            document.body.style.background = '#fdf2e9';
+            document.getElementById('card-container').style.borderColor = '#d35400';
+            document.getElementById('timer-display').classList.add('hidden');
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    let mins = Math.floor(timeLeft / 60);
+                    let secs = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    clearInterval(timerInterval);
+                    finish();
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            const data = questions[currentQ];
+            document.getElementById('question-text').innerHTML = `<span style="color:#000000">${currentQ + 1}.</span> ${data.q}`;
+            
+            const container = document.getElementById('choices-container');
+            const drawContainer = document.getElementById('drawing-container');
+            container.innerHTML = "";
+            document.getElementById('message').innerText = "";
+            
+            if (data.type === "draw") {
+                container.classList.add('hidden');
+                drawContainer.classList.remove('hidden');
+                initCanvas();
+            } else {
+                container.classList.remove('hidden');
+                drawContainer.classList.add('hidden');
+                data.opt.forEach((val, idx) => {
+                    const btn = document.createElement('button');
+                    
+                    // Set blue styles for quiz buttons
+                    btn.className = "btn-choice";
+                    btn.style.borderColor = "#004a8e"; 
+                    btn.style.color = "#004a8e";
+                    btn.style.boxShadow = "0 8px 0 #004a8e";
+                    
+                    const letter = String.fromCharCode(65 + idx);
+                    btn.innerHTML = `<span class="choice-marker">${letter}.</span> ${val}`;
+                    
+                    btn.onmouseover = () => { if(!btn.disabled) { btn.style.backgroundColor = "#004a8e"; btn.style.color = "white"; }};
+                    btn.onmouseout = () => { if(!btn.disabled) { btn.style.backgroundColor = "white"; btn.style.color = "#004a8e"; }};
+                    
+                    btn.onclick = () => {
+                        if(idx === data.ans) {
+                            score++;
+                            shootConfetti();
+                            document.getElementById('ding').play();
+                            document.getElementById('message').innerHTML = "<span style='color:#2ecc71'>⭐ TAMA! ⭐</span>";
+                        } else {
+                            triggerWrongEffect();
+                            document.getElementById('buzzer').currentTime = 0;
+                            document.getElementById('buzzer').play();
+                            btn.classList.add('shake');
+                            document.getElementById('message').innerHTML = "<span style='color:#e74c3c'>❌ Subukan Muli! ❌</span>";
+                        }
+                        const allBtns = container.querySelectorAll('.btn-choice');
+                        allBtns.forEach(b => b.disabled = true);
+                        setTimeout(() => {
+                            currentQ++;
+                            if(currentQ < questions.length) loadQuestion();
+                            else finish();
+                        }, 1500);
+                    };
+                    container.appendChild(btn);
+                });
+            }
+        }
+
+        function finish() {
+            const quizNode = document.getElementById('content-quiz');
+            const isPerfect = (score >= questions.length);
+            
+            if(isPerfect) {
+                shootConfetti();
+                setTimeout(shootConfetti, 500);
+                localStorage.setItem('story_completed_luya', 'true');
+            }
+
+            // SAVE TO LEADERBOARD
+            const currentUser = localStorage.getItem('currentUser');
+            if(currentUser) {
+                let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || {};
+                if(!leaderboard[currentUser]) leaderboard[currentUser] = {};
+                
+                const currentData = leaderboard[currentUser]['luya'] || { score: 0, retakes: 0 };
+                let newScore = isPerfect ? score : currentData.score;
+                
+                leaderboard[currentUser]['luya'] = { score: newScore, retakes: retakeCount };
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            }
+            
+            let resultHTML = `
+                <h1 class="mb-4" style="color: #004a8e;">${isPerfect ? '🏆 NAPAKAHUSAY! 🏆' : 'KAYA MO \'YAN!'}</h1>
+                <div class="score-text mb-4" style="color: #004a8e;">SCORE: ${score}/${questions.length}</div>
+                <div style="font-size: 2rem; color: #004a8e;" class="mb-4">Bilang ng Ulit: ${retakeCount}</div>
+                <p style="font-size: 2rem;">
+                    ${isPerfect 
+                        ? 'Nakapasa ka sa pagsusulit na ito!' 
+                        : 'Subukan muli para makuha ang perpektong score.'}
+                </p>
+                <div class="d-flex flex-column gap-3 align-items-center">
+                    ${isPerfect 
+                        ? `<button class="btn-custom btn-ready mt-4" style="background-color: #004a8e; box-shadow: 0 10px 0 #002d5a;" onclick="window.location.href='../story Mangga/mangga.html'">SUSUNOD NA ARALIN ➡️</button>` 
+                        : `<button class="btn-custom btn-ready mt-4" style="background-color: #004a8e; box-shadow: 0 10px 0 #002d5a;" onclick="resetQuiz()">MAGLARO MULI 🔄</button>`
+                    }
+                    <button class="btn-custom btn-ready mt-3" style="background-color: #e74c3c; box-shadow: 0 10px 0 #c0392b;" onclick="window.location.href='../Main.html'">HOME 🏠</button>
+                </div>
+            `;
+            quizNode.innerHTML = resultHTML;
+            document.getElementById('timer-display').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
