@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Okra Ni Oli - Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Alfabeto';
+            src: url('Alfabeto.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        :root {
+            --primary-font: 'Alfabeto', 'Comic Sans MS', cursive, sans-serif;
+            --main-theme: #2d6a4f; /* Green theme for Okra */
+        }
+
+        body, html {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: var(--primary-font);
+            background: #52b788; transition: background 0.4s ease-in-out;
+            user-select: none;
+        }
+
+        .wrong-flash { background: #2d6a4f !important; transition: 0.2s; }
+
+        #transition-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999; display: flex;
+            justify-content: center; align-items: center; overflow: hidden;
+        }
+
+        .trans-bubble {
+            position: absolute; 
+            background-image: url('okra.png'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transform: scale(0);
+        }
+
+        @keyframes bubbleFill {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .blue-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #52b788 0%, #52b788 50%, #2d6a4f 100%);
+            z-index: 1; transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .particle-container { position: absolute; width: 100%; height: 100%; z-index: 2; overflow: hidden; }
+        
+        .particle {
+            position: absolute; bottom: 100px; 
+            background-image: url('okra.png'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.7; 
+            animation: rise linear infinite;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translateY(-120vh) translateX(-30px) rotate(360deg); opacity: 0; }
+        }
+
+        .floor {
+            position: absolute; bottom: 0; width: 100%; height: 100px;
+            background: #52b788; border-top: 8px solid #ffffff; z-index: 5;
+        }
+
+        .ui-wrapper {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.98); border: 12px solid var(--main-theme);
+            border-radius: 50px; padding: 40px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            max-width: 1000px; width: 95%; text-align: center; position: relative;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .zoom-out-wow { transform: scale(0) rotate(10deg); opacity: 0; }
+        .bounce-in-wow { animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .white-bg-active { background: #e8f5e9 !important; }
+        .hide-bg { opacity: 0 !important; transform: scale(1.1); pointer-events: none; }
+
+        h1 { font-size: 3.5rem; color: var(--main-theme); font-weight: 700; }
+        .story-box {
+            font-size: 2.2rem; line-height: 1.4; background: #f1f8e9;
+            border-radius: 30px; border: 5px dashed var(--main-theme); position: relative;
+            font-size: 1.8rem; line-height: 1.6; background: #f1f8e9;
+            border-radius: 30px; border: 5px dashed var(--main-theme); position: relative; text-align: justify;
+        }
+
+        .deped-logo { position: absolute; top: -75px; left: 40px; width: 140px; }
+
+        #timer-display {
+            position: fixed; top: 20px; right: 20px; background: #ff4757; color: white;
+            padding: 10px 25px; border-radius: 50px; font-size: 2rem; font-weight: 700;
+            border: 4px solid white; z-index: 100;
+        }
+
+        .btn-custom {
+            font-size: 2.5rem; padding: 20px 60px; border-radius: 100px; border: none;
+            font-weight: 700; color: white; box-shadow: 0 10px 0 #1b4332; cursor: pointer;
+            font-family: var(--primary-font);
+        }
+        .btn-ready { background-color: var(--main-theme); }
+        .btn-ready:active { transform: translateY(8px); box-shadow: 0 2px 0 #1b4332; }
+
+        .btn-audio {
+            background: #52b788; color: white; border: none; border-radius: 50%;
+            width: 70px; height: 70px; font-size: 2rem; box-shadow: 0 6px 0 #1b4332;
+            margin-bottom: 10px; transition: 0.2s;
+        }
+
+        .btn-choice { 
+            background-color: white; color: var(--main-theme); border: 4px solid var(--main-theme); 
+            width: 100%; margin-bottom: 12px; text-align: left; padding: 12px 30px;
+            font-size: 2.2rem; border-radius: 30px; box-shadow: 0 8px 0 var(--main-theme);
+            transition: transform 0.2s; font-family: var(--primary-font);
+        }
+        
+        .choice-marker {
+            font-weight: 700; margin-right: 15px; color: #000000;
+        }
+        .btn-choice:hover:not(:disabled) { background-color: var(--main-theme); color: white; transform: translateX(10px); }
+
+        #message { font-size: 2.5rem; margin-top: 5px; min-height: 3rem; font-weight: 700; }
+        .hidden { display: none !important; }
+
+        .score-text { font-size: 4rem; color: var(--main-theme); font-weight: 700; } /* Consolidated score-text CSS */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="transition-overlay"></div>
+
+    <div class="blue-container" id="main-bg"> <!-- Renamed to main-bg for consistency -->
+        <div class="particle-container" id="particle-box"></div>
+        <div class="floor"></div>
+    </div>
+
+    <div id="timer-display" class="hidden">13:00</div>
+
+    <div class="ui-wrapper">
+        <div class="main-card" id="card-container">
+            <img src="deped.png" class="deped-logo" alt="DepEd Logo" onerror="this.style.display='none'">
+            
+            <div id="content-welcome">
+                <h1 class="mb-5">Handa Ka Na Ba?</h1>
+                <button class="btn-custom btn-ready" onclick="triggerWowForStory()">MAGSIMULA!</button> <!-- Calls triggerWowForStory -->
+            </div>
+
+            <div id="content-story" class="hidden">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 style="color: var(--main-theme);">Basahin Natin</h1> <!-- Changed to use var(--main-theme) -->
+                    <button class="btn-audio" onclick="playVoice()">🔊</button> <!-- Calls playVoice -->
+                </div>
+                
+                <div class="mt-3 mb-3">
+                    <img src="okra.png" alt="Okra Image" class="img-fluid rounded" style="max-height: 250px; border: 4px solid var(--main-theme); border-radius: 20px;" onerror="this.style.display='none'">
+                </div>
+
+                <div class="story-box p-4">
+                    <p class="mb-0" style="text-indent: 2rem;">Nagtanim si Oli ng okra. Tiglimang bunga ang bawat puno. Kinuha niya ang lahat ng bunga. Ibebenta niya sa palengke ang mga okra.</p>
+                </div>
+                <button class="btn-custom btn-ready mt-5" onclick="triggerBubbleTransition()">MAGPATULOY </button>
+            </div>
+
+            <div id="content-quiz" class="hidden">
+                <div class="mb-4">
+                    <h2 id="question-text" style="font-size: 2.8rem; font-weight: 700;"></h2>
+                </div>
+                
+                <div id="choices-container"></div>
+                <div id="message" class="fw-bold"></div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="storyVoice" src="okra_voice.m4a"></audio>
+    <audio id="ding" src="https://www.myinstants.com/media/sounds/ding-sound-effect_1.mp3"></audio>
+    <audio id="buzzer" src="https://www.myinstants.com/media/sounds/spongebob-fail.mp3"></audio>
+
+    <script>
+        const questions = [
+            { q: "Sino ang nagtanim ng okra?", opt: ["Oli", "Olay", "Ona", "Ome"], ans: 0 },
+            { q: "Ilan ang puno ng okra ni Oli?", opt: ["1", "2", "3", "4"], ans: 2 },
+            { q: "Ilan ang bunga sa bawat puno?", opt: ["5", "6", "7", "8"], ans: 0 },
+            { q: "Ilan lahat ang mga okra niya?", opt: ["5", "10", "15", "20"], ans: 2 },
+            { q: "Kung labinglima ang mga okra at iluluto niya ang 10, ilan ang okrang matitira?", opt: ["5", "10", "15", "20"], ans: 0 },
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let timeLeft = 300; // 5 minutes
+        let timerStarted = false; // Flag to ensure timer starts only once
+        let retakeCount = 0; // Initialize retakeCount to 0, will be fetched from DB
+        let isSaved = false; // Track if progress has been saved for the current attempt
+
+        function triggerBubbleTransition() { // This is for starting the quiz after story
+            const overlay = document.getElementById('transition-overlay');
+            const particleCount = 15;
+            document.getElementById('ding').play();
+            for (let i = 0; i < particleCount; i++) { // Corrected loop variable
+                const b = document.createElement('div');
+                b.className = 'trans-bubble'; // Corrected loop variable
+                const size = Math.random() * 300 + 200;
+                b.style.width = size + 'px';
+                b.style.height = size + 'px';
+                b.style.left = Math.random() * 100 + '%';
+                b.style.top = Math.random() * 100 + '%';
+                b.style.animation = `bubbleFill 1.2s ease-in-out forwards`;
+                b.style.animationDelay = (Math.random() * 0.4) + 's';
+                overlay.appendChild(b);
+            }
+            setTimeout(() => { startQuiz(); }, 700); // Calls startQuiz
+            setTimeout(() => { overlay.innerHTML = ''; }, 2000);
+        }
+
+        const STORY_ID = 'okra'; // Unique ID for this story
+
+        async function fetchInitialRetakes() {
+            const userJson = localStorage.getItem('currentUser');
+            if (!userJson) return;
+            const user = JSON.parse(userJson);
+            try {
+                const response = await fetch('../get_leaderboard.php?action=user_details&school_id=' + user.school_id);
+                const result = await response.json();
+                if (result.success) {
+                    const record = result.records.find(r => r.story_id === STORY_ID);
+                    if (record) retakeCount = parseInt(record.retakes) || 0;
+                }
+            } catch (e) { console.error("Error fetching retakes:", e); }
+        }
+        fetchInitialRetakes(); // Fetch initial retake count when the script loads
+
+        function shootConfetti() {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#2d6a4f', '#52b788', '#ffffff', '#f1c40f'] 
+            });
+        }
+
+        function triggerWrongEffect() {
+            document.body.classList.add('wrong-flash');
+            setTimeout(() => document.body.classList.remove('wrong-flash'), 400);
+        }
+
+        let particleInterval; // Declare globally to hold the interval ID
+
+        function createSingleParticle() { // Function to create just one particle
+            const container = document.getElementById('particle-box');
+            if (!container) return; // Safety check
+            const b = document.createElement('div');
+            b.className = 'particle';
+            const size = Math.random() * 60 + 40 + 'px'; 
+            b.style.width = size; b.style.height = size;
+            b.style.left = Math.random() * 100 + '%';
+            b.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            b.style.backgroundImage = `url('okra.png')`; // Ensure image is set
+            container.appendChild(b);
+            setTimeout(() => b.remove(), 10000);
+        }
+
+        function startParticleRain() { // Function to start the continuous rain
+            if (particleInterval) return; // Prevent multiple intervals
+            createSingleParticle(); // Create one immediately
+            particleInterval = setInterval(createSingleParticle, 800); // Then set interval for subsequent ones
+        }
+
+        function stopParticleRain() { // Function to stop the rain
+            clearInterval(particleInterval);
+            particleInterval = null; // Clear the interval ID
+            document.querySelectorAll('.particle').forEach(el => el.remove());
+        }
+
+        function triggerWowForStory() {
+            document.getElementById('ding').play();
+            const card = document.getElementById('card-container');
+            card.classList.add('zoom-out-wow');
+            document.getElementById('main-bg').classList.add('hide-bg');
+            document.body.classList.add('white-bg-active');
+            setTimeout(() => {
+                document.getElementById('content-welcome').classList.add('hidden');
+                document.getElementById('content-story').classList.remove('hidden');
+                card.classList.remove('zoom-out-wow');
+                card.classList.add('bounce-in-wow');
+            }, 700);
+            startParticleRain(); // Start particle rain for welcome screen
+        }
+
+        function startQuiz() { // This is for starting the quiz
+            document.getElementById('storyVoice').pause();
+            document.getElementById('content-story').classList.add('hidden');
+            document.getElementById('content-quiz').classList.remove('hidden');
+            document.getElementById('timer-display').classList.remove('hidden');
+            stopParticleRain(); // Stop particle rain for quiz screen
+
+            // --- THEME CHANGE TO BLUE FOR QUIZ ---
+            document.body.style.background = '#e0f2ff'; // Light blue background
+            const card = document.getElementById('card-container');
+            card.style.borderColor = '#004a8e';
+            document.documentElement.style.setProperty('--main-theme', '#004a8e'); // Change main theme color to blue for buttons
+            // --- END THEME CHANGE ---
+
+            if(!timerStarted) { startTimer(); timerStarted = true; }
+            loadQuestion();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    let mins = Math.floor(timeLeft / 60);
+                    let secs = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    clearInterval(timerInterval);
+                    finish();
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            const data = questions[currentQ];
+            document.getElementById('question-text').innerHTML = `<span style="color:var(--main-theme)">${currentQ + 1}.</span> ${data.q}`;
+            
+            const container = document.getElementById('choices-container');
+            container.innerHTML = "";
+            document.getElementById('message').innerText = "";
+            
+            data.opt.forEach((val, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-choice";
+                const letter = String.fromCharCode(65 + idx);
+                btn.innerHTML = `<span class="choice-marker">${letter}.</span> ${val}`;
+
+                btn.onclick = () => {
+                    if(idx === data.ans) {
+                        score++;
+                        shootConfetti();
+                        document.getElementById('ding').play();
+                        document.getElementById('message').innerHTML = "<span style='color:#2ecc71'>⭐ TAMA! ⭐</span>";
+                    } else {
+                        triggerWrongEffect();
+                        document.getElementById('buzzer').currentTime = 0;
+                        document.getElementById('buzzer').play();
+                        btn.classList.add('shake');
+                        document.getElementById('message').innerHTML = "<span style='color:#e74c3c'>❌ Subukan Muli! ❌</span>";
+                    }
+                    const allBtns = container.querySelectorAll('.btn-choice');
+                    allBtns.forEach(b => b.disabled = true);
+                    setTimeout(() => { // Corrected timeout
+                        currentQ++;
+                        if(currentQ < questions.length) loadQuestion(); // Corrected timeout
+                        else finish();
+                    }, 1500);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function playVoice() {
+            const v = document.getElementById('storyVoice'); // Corrected variable name
+            v.currentTime = 0; v.play();
+        }
+
+        async function finish() { // Made async
+            clearInterval(timerInterval); // Stop the timer
+            document.getElementById('timer-display').classList.add('hidden'); // Hide timer
+
+            const quizNode = document.getElementById('content-quiz');
+            const isPerfect = (score === questions.length); // Changed to strict equality
+            
+            if (!isPerfect) retakeCount++; // Increment retake count only if not perfect
+
+            // Save progress to the database
+            const userJson = localStorage.getItem('currentUser');
+            if(userJson) {
+                const user = JSON.parse(userJson);
+                await fetch('../save_progress.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ school_id: user.school_id, story_id: STORY_ID, is_perfect: isPerfect })
+                });
+                isSaved = true; // Mark as saved
+            }
+
+            if(isPerfect) {
+                shootConfetti();
+                setTimeout(shootConfetti, 500);
+                // Redirect automatically after confetti
+                setTimeout(() => { window.location.href = '../story PapasokNa/PapasokNa.html'; }, 2000);
+            }
+            
+            quizNode.innerHTML = `
+                <h1 class="mb-4">${isPerfect ? '🏆 NAPAKAHUSAY! 🏆' : 'KAYA MO \'YAN!'}</h1>
+                <div class="score-text mb-4">SCORE: ${score}/${questions.length}</div> <!-- Uses var(--main-theme) -->
+                <div style="font-size: 2rem; color: #0d47a1;" class="mb-4">Bilang ng Ulit: ${retakeCount}</div>
+                <div class="d-flex flex-column gap-3 align-items-center">
+                    ${isPerfect 
+                        ? '' // No button for perfect score, automatic redirect
+                        : `<button class="btn-custom btn-ready mt-4" onclick="resetQuiz()">MAGLARO MULI 🔄</button>`
+                    }
+                    <button class="btn-custom btn-ready mt-3" style="background-color: #6c757d; box-shadow: 0 10px 0 #495057;" onclick="goHome()">HOME 🏠</button>
+                </div>
+            `;
+        }
+
+        function goHome() {
+            const leave = () => { window.location.href = '../Main.html'; };
+            // If quiz was started and progress wasn't saved (e.g., not perfect score)
+            if(timerStarted && !isSaved) {
+                if(confirm("Maaring hindi masave ang iyong quiz. Sigurado ka ba?")) {
+                    leave();
+                }
+            } else {
+                leave();
+            }
+        }
+
+        function resetQuiz() {
+            isSaved = false; // Reset save status for new attempt
+            currentQ = 0;
+            score = 0;
+            timeLeft = 300;
+            clearInterval(timerInterval);
+            timerStarted = false; // Reset timer flag
+            
+            // Restore Quiz HTML Structure
+            document.getElementById('content-quiz').innerHTML = `
+                <div class="mb-4"><h2 id="question-text" style="font-size: 2.8rem; font-weight: 700;"></h2></div>
+                <div id="choices-container"></div><div id="message" class="fw-bold"></div>
+            `;
+            
+            document.getElementById('content-quiz').classList.add('hidden');
+            document.getElementById('content-welcome').classList.remove('hidden');
+            document.getElementById('content-welcome').classList.add('fade-in');
+
+            // --- REVERT THEME ---
+            document.body.style.background = '#52b788'; // Restore original green
+            const card = document.getElementById('card-container');
+            card.style.borderColor = '#2d6a4f';
+            document.documentElement.style.setProperty('--main-theme', '#2d6a4f'); // Reset to initial green color
+            // --- END REVERT ---
+
+            document.getElementById('timer-display').classList.add('hidden'); // Ensure timer is hidden
+            fetchInitialRetakes(); // Re-fetch retake count for the new attempt
+            startParticleRain(); // Restart particle rain for welcome screen
+        }
+        startParticleRain(); // Start particle rain on page load for the welcome screen
+    </script>
+</body>
+</html>

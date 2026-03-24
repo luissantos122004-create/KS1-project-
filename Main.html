@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MALABAN - Main Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root { 
+            --deped-blue: #1e3a8a; 
+        }
+        
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #004a8e, #87CEEB);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            color: white;
+            transition: opacity 0.4s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #loading-screen.visible { opacity: 1; pointer-events: auto; }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(255,255,255,0.3);
+            border-top: 6px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 8px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #fff, #87CEEB, #fff);
+            width: 100%;
+            transform: translateX(-100%);
+            animation: fill-progress 2s ease-out forwards;
+        }
+
+        @keyframes fill-progress {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #loading-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        body { font-family: 'Arial Rounded MT Bold', sans-serif; background: #f0f2f5; margin: 0; overflow-x: hidden; }
+        
+        #intro-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: white; padding: 20px; }
+        .badge-13 { position: absolute; top: 40px; left: 40px; background: var(--deped-blue); color: white; padding: 15px 30px; border-radius: 20px; font-size: 3rem; font-weight: bold; }
+        .malaban-text { font-size: 5rem; font-weight: 900; letter-spacing: 5px; margin: 0; color: #333; }
+        .sub-text { font-size: 2rem; color: #444; margin: 0; line-height: 1.2; }
+        .btn-magsimula { background: #004a8e; color: white; padding: 15px 60px; border-radius: 60px; font-size: 2rem; font-weight: 700; border: none; box-shadow: 0 10px 0 #002d5a; cursor: pointer; margin-top: 20px; transition: 0.1s; text-decoration: none; display: inline-block; }
+        .btn-magsimula:active { transform: translateY(5px); box-shadow: 0 5px 0 #002d5a; }
+        .btn-custom, .btn-bumalik, .btn-reset, .btn-userboard-intro, button {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-custom::before, .btn-bumalik::before, .btn-reset::before, .btn-userboard-intro::before, button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        .btn-custom:hover::before, .btn-bumalik:hover::before, .btn-reset:hover::before, .btn-userboard-intro:hover::before, button:hover::before {
+            left: 100%;
+        }
+
+        #library-section { 
+            display: none; 
+            min-height: 100vh; 
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 70%, #4CAF50 100%);
+            padding: 50px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sun {
+            position: absolute;
+            top: 8%;
+            right: 10%;
+            width: 100px;
+            height: 100px;
+            background: #FFC107;
+            border-radius: 50%;
+            box-shadow: 0 0 30px #FFC107, 0 0 60px #FFEB3B;
+            z-index: 0;
+        }
+
+        .cloud { 
+            position: absolute; 
+            background: #fff; 
+            border-radius: 50%; 
+            opacity: 0.9; 
+            z-index: 0; 
+            box-shadow: 40px 20px 40px 10px #fff;
+            filter: blur(1px); 
+        }
+
+        .cloud::after, .cloud::before { 
+            content: ''; 
+            position: absolute; 
+            background: #fff; 
+            border-radius: 50%; 
+        }
+
+        .cloud::after { 
+            width: 100px; 
+            height: 100px; 
+            top: -50px; 
+            left: 40px; 
+            box-shadow: 0 0 30px 5px #fff;
+        }
+
+        .cloud::before { 
+            width: 120px; 
+            height: 120px; 
+            top: -70px; 
+            left: 80px; 
+            box-shadow: 0 0 30px 5px #fff;
+        }
+
+        .c1 { width: 250px; height: 80px; top: 10%; left: -300px; animation: moveCloud 45s linear infinite; transform: scale(1.2); }
+        .c2 { width: 200px; height: 60px; top: 25%; left: -250px; animation: moveCloud 60s linear infinite 10s; opacity: 0.6; transform: scale(0.8); }
+
+        @keyframes moveCloud {
+            from { left: -350px; }
+            to { left: 110%; }
+        }
+
+        .shelf-container { 
+            background: rgba(255, 255, 255, 0.9); 
+            border-radius: 50px; 
+            padding: 50px; 
+            max-width: 1400px; 
+            margin: auto; 
+            box-shadow: 0 20px 0 rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 10;
+            border: 8px solid #fff;
+        }
+
+        .level-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 25px; 
+            margin-top: 40px; 
+        }
+
+        .level-card { 
+            border-radius: 20px; 
+            padding: 15px;
+            text-align: center; 
+            text-decoration: none; 
+            color: white; 
+            font-size: 1rem;
+            font-weight: bold; 
+            transition: 0.3s; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .level-card .level-img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 15px;
+            background: white;
+        }
+        
+        .level-card .level-name {
+            font-size: 1rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .level-card .level-number {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .level-card:hover { 
+            transform: scale(1.05) translateY(-5px); 
+            box-shadow: 0 12px 15px rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        #leaderboard-section { display: none; min-height: 100vh; background: #fff; padding: 50px; text-align: center; }
+        .table-container { max-width: 1000px; margin: 0 auto; background: #f9f9f9; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; font-size: 1.5rem; }
+        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #ddd; }
+        th { background-color: #004a8e; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .rank-1 { color: #f1c40f; font-weight: bold; text-shadow: 1px 1px 0 #000; }
+        .rank-2 { color: #95a5a6; font-weight: bold; }
+        .rank-3 { color: #d35400; font-weight: bold; }
+
+        .level-card.locked {
+            filter: grayscale(100%);
+            pointer-events: none;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .level-card.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            filter: grayscale(0);
+        }
+        .level-card.locked .level-img {
+            opacity: 0.3;
+        }
+
+        .btn-bumalik {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 6px 0 #b71c1c;
+            margin-top: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .btn-reset {
+            background: #607D8B;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 6px 0 #455A64;
+            margin-top: 40px;
+            margin-left: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .btn-userboard-intro {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #f39c12;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #d35400;
+            border: none;
+            cursor: pointer;
+            z-index: 100;
+        }
+        .btn-userboard-intro:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #d35400;
+        }
+
+        .btn-reset:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #455A64;
+        }
+
+        .btn-bumalik:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #b71c1c;
+        }
+
+        .fade-in-section {
+            animation: fadeInSection 0.8s ease-in-out;
+        }
+        @keyframes fadeInSection {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="intro-screen">
+            <button class="btn-userboard-intro" onclick="showUserBoard()">📋 USER BOARD</button>
+        <div class="badge-13">1-3</div>
+        <h1 class="malaban-text">MALABAN</h1>
+        <div class="sub-text"><b>MA</b>g-aaral <b>LA</b>hat</div>
+        <div class="sub-text"><b>B</b>umabasa <b>A</b>t <b>N</b>akauunawa</div>
+        
+        <div id="login-form" style="display: none; margin-top: 30px; background: #f8f9fa; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px;">
+            <h3 id="auth-title" style="color: #004a8e; margin-bottom: 20px;">LOG IN</h3>
+            <div id="reg-only-fields" style="display: none;">
+                <input type="text" id="reg-name" placeholder="Buong Pangalan" class="form-control mb-2">
+                <input type="text" id="reg-school" placeholder="Paaralan" class="form-control mb-2">
+            </div>
+            <input type="text" id="auth-sid" placeholder="School ID" class="form-control mb-2">
+            <input type="password" id="auth-pass" placeholder="Password" class="form-control mb-2">
+            <button class="btn-magsimula" id="auth-btn" onclick="handleAuth()" style="width: 100%; font-size: 1.2rem; padding: 10px;">PUMASOK</button>
+            <p class="mt-3"><a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-toggle">Wala pang account? Mag-register.</a></p>
+        </div>
+        <button id="start-btn" class="btn-magsimula" onclick="showLoading('Naglo-loading...'); setTimeout(() => { hideLoading(); showLogin(); }, 2000);">MAGSIMULA</button>
+    </div>
+
+    <div id="library-section">
+        <div class="cloud c1"></div>
+        <div class="cloud c2"></div>
+        <div class="sun"></div>
+
+        <div class="shelf-container text-center">
+            <h1 class="display-4 fw-bold mb-2" style="color: #004a8e;"> PUMILI NG KUWENTO </h1>
+            <p style="color: #666; font-size: 1.2rem;">Kumpletuhin ang bawat kuwento para mabuksan ang susunod na level!</p>
+            
+           <div class="level-grid" id="level-grid">
+    <!-- Levels will be generated by JavaScript -->
+            </div>
+            <button class="btn-bumalik" onclick="showLoading('Naglo-loading...'); setTimeout(() => location.reload(), 2000);">BUMALIK 🏠</button>
+            <button class="btn-bumalik" style="background: #e74c3c; box-shadow: 0 6px 0 #c0392b;" onclick="showLoading('Logging out...'); setTimeout(logout, 2000);">LOGOUT 🚪</button>
+            <button id="admin-dash-btn" class="btn-reset" style="display: none; background: #9b59b6; box-shadow: 0 6px 0 #8e44ad; margin-left: 20px;" onclick="showUserBoard()">ADMIN DASHBOARD 👑</button>
+            <button class="btn-reset" onclick="resetProgress()">RESET PROGRESS 🔄</button>
+        </div>
+    </div>
+
+    <div id="loading-screen">
+        <div id="loading-text">Naglo-loading...</div>
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+    </div>
+    <div id="leaderboard-section">
+        <h1 class="display-3 fw-bold mb-4" style="color: #004a8e;">📋 USER BOARD 📋</h1>
+        <h2 id="userboard-name" class="text-center mb-4" style="color: #555; font-size: 2rem;"></h2>
+        
+        <!-- Admin Stats & Search -->
+        <div id="admin-dashboard-extras" style="display: none; max-width: 1000px; margin: 0 auto 30px auto; text-align: left;">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="p-3 bg-light border rounded shadow-sm">
+                        <h5 class="text-muted">Total Users</h5>
+                        <p id="total-users-stat" class="fs-4 fw-bold text-primary">0</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-light border rounded shadow-sm">
+                        <h5 class="text-muted">Total Stories Completed</h5>
+                        <p id="total-completed-stat" class="fs-4 fw-bold text-success">0</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-light border rounded shadow-sm">
+                        <h5 class="text-muted">Total Retakes</h5>
+                        <p id="total-retakes-stat" class="fs-4 fw-bold text-danger">0</p>
+                    </div>
+                </div>
+            </div>
+            <input type="text" id="user-search-input" class="form-control mt-4" placeholder="Maghanap ng user ayon sa pangalan...">
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead id="leaderboard-head"><tr><th>Pangalan</th><th>Kuwento</th><th>Bilang ng Ulit (Retries)</th></tr></thead>
+                <tbody id="leaderboard-body">
+                </tbody>
+            </table>
+        </div>
+        <button id="back-to-home-btn" class="btn-bumalik" onclick="location.reload()">BUMALIK 🏠</button>
+        <button id="back-to-users-btn" class="btn-bumalik" style="display:none; background: #3498db; box-shadow: 0 6px 0 #2980b9;" onclick="showUserBoard()">BUMALIK SA LISTAHAN 📋</button>
+    </div>
+
+    <div id="completion-screen" style="display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: linear-gradient(45deg, #f1c40f, #f39c12); padding: 20px; color: white;">
+        <h1 style="font-size: 5rem; font-weight: 900; text-shadow: 3px 3px 0px rgba(0,0,0,0.2);">🏆 Mahusay! 🏆</h1>
+        <p style="font-size: 2rem; margin-top: 10px;">Natapos mo lahat ng kwento at quizez.</p>
+        <div style="margin-top: 40px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+            <button class="btn-magsimula" style="background: #e74c3c; box-shadow: 0 10px 0 #c0392b;" onclick="logout()">EXIT 🚪</button>
+            <button class="btn-magsimula" style="background: #3498db; box-shadow: 0 10px 0 #2980b9;" onclick="resetProgress()">RESET LEVELS 🔄</button>
+            <button class="btn-magsimula" style="background: #2ecc71; box-shadow: 0 10px 0 #27ae60;" onclick="goBackToLibrary()">LEVELS 📚</button>
+        </div>
+    </div>
+
+    <div id="instruction-screen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 20000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 40px; border-radius: 30px; text-align: center; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin: 20px;">
+            <h2 style="color: #004a8e; font-weight: bold; margin-bottom: 20px; font-size: 2.5rem;">Panuto</h2>
+            <p style="font-size: 1.5rem; line-height: 1.6; color: #333;">
+                Basahin at intindihin ang kwento. Sagutan ang mga tanong base sa kwentong iyong binasa.
+            </p>
+            <button class="btn-magsimula" onclick="hideInstructionScreen()" style="margin-top: 30px;">SIMULA</button>
+    </div>
+
+    <script>
+        function showLoading(text = 'Naglo-loading...') {
+            const loadingScreen = document.getElementById('loading-screen');
+            const progressBar = loadingScreen.querySelector('.progress-fill');
+            
+            // Reset animation by re-applying it
+            progressBar.style.animation = 'none';
+            progressBar.offsetHeight; /* trigger reflow */
+            progressBar.style.animation = null; 
+            loadingScreen.classList.add('visible');
+            loadingScreen.style.display = 'flex'; // Keep flex display
+            document.getElementById('loading-text').innerText = text;
+        }
+
+        function hideLoading() {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.classList.remove('visible');
+            // Hide after transition
+            setTimeout(() => { loadingScreen.style.display = 'none'; }, 400);
+        }
+
+        let isAdmin = false;
+        let isRegisterMode = false;
+
+        // Story data with images and names (CORRECT ORDER)
+        const stories = [
+            { id: 'anahaw', name: 'Anahaw', img: 'story%20anahaw/anahaw.png', color: '#FF5722' },
+            { id: 'ayungin', name: 'Ayungin', img: 'story%20ayungin/ayungin.png', color: '#9C27B0' },
+            { id: 'bangus', name: 'Bangus', img: 'story%20bangus/bangus.png', color: '#2196F3' },
+            { id: 'bibingka', name: 'Bibingka ni Lola Binay', img: 'story%20bibingkanilola/Bibingka.png', color: '#FFC107' },
+            { id: 'karoling', name: 'Karoling', img: 'story%20Karoling/karoling.png', color: '#f44336' },
+            { id: 'kalabaw', name: 'Kalabaw', img: 'story%20kalabaw/kalabaw.png', color: '#2d6a4f' },
+            { id: 'kalesanikiko', name: 'Kalesa ni Kiko', img: 'story%20KalesaNiKiko/kalesanikiko.png', color: '#795548' },
+            { id: 'rizal', name: 'Dr. Jose P. Rizal', img: 'story%20DrJoseRizal/rizal.png', color: '#3F51B5' },
+            { id: 'duhat', name: 'Duhat', img: 'story%20duhat/duhat.png', color: '#673AB7' },
+            { id: 'ensaymada', name: 'Espesyal Ensaymada', img: 'story%20espesyal%20ensaymada/ensaymada.png', color: '#FF9800' },
+            { id: 'empanada', name: 'Empanada ni Emma', img: 'story%20empanada%20ni%20emma/empanada.png', color: '#E91E63' },
+            { id: 'gumamela', name: 'Ang Mga Gumamela', img: 'story%20gumamela/gumamela2.png', color: '#e84393' },
+            { id: 'gagamba', name: 'Ang Gagamba', img: 'story%20anggagamba/anggagamba.png', color: '#607D8B' },
+            { id: 'halaya', name: 'Halayang Ube', img: 'story%20Halayang%20ube/halayangube.png', color: '#8E24AA' },
+            { id: 'holen', name: 'Holen ni Harry', img: 'story%20HolenNiHarry/holen.png', color: '#00BCD4' },
+            { id: 'hugis', name: 'Hugis na Nakakaaliw', img: 'story%20hugis%20na%20nakakaaliw/hugis.png', color: '#009688' },
+            { id: 'ibongpipit', name: 'Ibong Pipit', img: 'story%20IbongPipit/IbongPipit.png', color: '#8BC34A' },
+            { id: 'lawa', name: 'Lawa ng Laguna', img: 'story%20lawa%20ng%20laguna/lawa.png', color: '#795548' },
+            { id: 'kaarawan', name: 'Kaarawan Ko', img: 'story%20kaarawan%20ko/lobo.png', color: '#E91E63' },
+            { id: 'luya', name: 'Luyang Dilaw', img: 'story%20luyang%20dilaw/luya.png', color: '#f39c12' },
+            { id: 'mangga', name: 'Mangga', img: 'story%20Mangga/mangga.png', color: '#8BC34A' },
+            { id: 'niyog', name: 'Niyog', img: 'story%20Niyog/niyog.png', color: '#795548' },
+            { id: 'ngeliiyak', name: 'Umiiyak si Ngeli', img: 'story%20ngipin/ngeli.png', color: '#00ACC1' },
+            { id: 'oda', name: 'Si Oda Oktopoda', img: 'story%20si%20oda%20oktopoda/oda.png', color: '#3F51B5' },
+            { id: 'okra', name: 'Okra ni Oli', img: 'story%20Okra%20ni%20Oli/okra.png', color: '#4CAF50' },
+            { id: 'oras', name: 'Oras Na', img: 'story%20PapasokNa/papasok.png', color: '#2196F3' },
+            { id: 'peryahan', name: 'Peryahan', img: 'story%20peryahan/peryahan.png', color: '#E91E63' },
+            { id: 'pitaka', name: 'Pitaka ni Pepito', img: 'story%20PitakaNiPepito/pitaka.png', color: '#795548' },
+            { id: 'radyo', name: 'Radyo ni Ruru', img: 'story%20RadyoNiRuru/radyo.png', color: '#607D8B' },
+            { id: 'regalo', name: 'Regalo sa Pasko', img: 'story%20regalosapasko/regalo.png', color: '#f44336' },
+            { id: 'sampaguita', name: 'Sampaguita', img: 'story%20Sampaguita/sampaguita.png', color: '#FFFFFF' },
+            { id: 'sapatos', name: 'Sapatos ni Sara', img: 'story%20sapatos/sapatos2.png', color: '#9E9E9E' },
+            { id: 'sapatero', name: 'Tatay Kong Sapatero', img: 'story%20sapatero/sapatero1.png', color: '#8D6E63' },
+            { id: 'taho', name: 'Taho', img: 'story%20taho/taho1.png', color: '#FFCCBC' },
+            { id: 'usaubas', name: 'Usa at ang Ubas', img: 'story%20usa%20at%20ubas/usa1.png', color: '#4CAF50' },
+            { id: 'watawat', name: 'Mahal Kong Watawat', img: 'story%20mahal%20kong%20watawat/watawat.png', color: '#3F51B5' },
+            { id: 'twalis', name: 'Walis ni Tata Willy', img: 'story%20twalis%20ni%20tata%20willy/walis.png', color: '#FFB300' },
+            { id: 'yaya', name: 'Yaya Ayeng', img: 'story%20yaya%20ayeng/yaya.png', color: '#CE93D8' },
+            { id: 'yema', name: 'Yema ni Yayi', img: 'story%20yema%20ni%20yayi/yema.png', color: '#FFF176' }
+        ];
+
+        // Generate level cards
+        function generateLevelCards() {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = '';
+            
+            stories.forEach((story, index) => {
+                const card = document.createElement('a');
+                card.href = getStoryUrl(story.id);
+                card.className = 'level-card';
+                card.id = 'level-' + index;
+                card.style.background = story.color;
+                if (story.color === '#FFFFFF' || story.color === '#FFF176' || story.color === '#FFCCBC') {
+                    card.style.color = '#333';
+                }
+                
+                // Prevent click on locked cards
+                card.addEventListener('click', function(e) {
+                    if (card.classList.contains('locked')) {
+                        e.preventDefault();
+                        alert('Kailangan mo munang makumpleto ang nakaraang kuwento!');
+                    }
+                });
+                
+                const levelNum = document.createElement('span');
+                levelNum.className = 'level-number';
+                levelNum.innerText = 'Level ' + (index + 1);
+                
+                const img = document.createElement('img');
+                img.className = 'level-img';
+                img.src = story.img;
+                img.alt = story.name;
+                img.onerror = "this.src='https://via.placeholder.com/200x120?text=" + encodeURIComponent(story.name) + "'";
+                
+                const name = document.createElement('span');
+                name.className = 'level-name';
+                name.innerText = story.name;
+                
+                card.appendChild(levelNum);
+                card.appendChild(img);
+                card.appendChild(name);
+                grid.appendChild(card);
+            });
+        }
+
+        function getStoryUrl(storyId) {
+            const version = '1.1'; // Cache-busting version
+            const urlMap = {
+                'anahaw': 'story%20anahaw/anahaw.html',
+                'ayungin': 'story%20ayungin/ayungin.html',
+                'bangus': 'story%20bangus/bangus.html',
+                'bibingka': 'story%20bibingkanilola/bibingkanilola.html',
+                'karoling': 'story%20Karoling/karoling.html',
+                'kalabaw': 'story%20kalabaw/kalabaw.html',
+                'kalesanikiko': 'story%20KalesaNiKiko/KalesaNiKiko.html',
+                'rizal': 'story%20DrJoseRizal/DrJosePRizal.html',
+                'duhat': 'story%20duhat/duhat.html',
+                'ensaymada': 'story%20espesyal%20ensaymada/espesyal%20ensaymada.html',
+                'empanada': 'story%20empanada%20ni%20emma/empanada%20ni%20emma.html',
+                'gumamela': 'story%20gumamela/gumamela.html',
+                'gagamba': 'story%20anggagamba/anggagamba.html',
+                'halaya': 'story%20Halayang%20ube/halayangube.html',
+                'holen': 'story%20HolenNiHarry/HolenNiHarry.html',
+                'hugis': 'story%20hugis%20na%20nakakaaliw/hugis%20na%20nakakaaliw.html',
+                'ibongpipit': 'story%20IbongPipit/IbongPipit.html',
+                'lawa': 'story%20lawa%20ng%20laguna/lawa%20ng%20laguna.html',
+                'kaarawan': 'story%20kaarawan%20ko/kaarawan.html',
+                'luya': 'story%20luyang%20dilaw/luyang%20dilaw.html',
+                'mangga': 'story%20Mangga/Mangga.html',
+                'niyog': 'story%20Niyog/Niyog.html',
+                'ngeliiyak': 'story%20ngipin/ngipin.html',
+                'oda': 'story%20si%20oda%20oktopoda/si%20oda%20oktopoda.html',
+                'okra': 'story%20Okra%20ni%20Oli/okra.html',
+                'oras': 'story%20PapasokNa/PapasokNa.html',
+                'peryahan': 'story%20peryahan/Peryahan.html',
+                'pitaka': 'story%20PitakaNiPepito/PitakaNiPepito.html',
+                'radyo': 'story%20RadyoNiRuru/RadyoNiRuru.html',
+                'regalo': 'story%20regalosapasko/RegaloSaPasko.html',
+                'sampaguita': 'story%20Sampaguita/Sampaguita.html',
+                'sapatos': 'story%20sapatos/sapatos.html',
+                'sapatero': 'story%20sapatero/sapatero.html',
+                'taho': 'story%20taho/taho.html',
+                'usaubas': 'story%20usa%20at%20ubas/usa.html',
+                'watawat': 'story%20mahal%20kong%20watawat/mahal%20kong%20watawat.html',
+                'twalis': 'story%20twalis%20ni%20tata%20willy/walis%20ni%20tata%20willy.html',
+                'yaya': 'story%20yaya%20ayeng/yaya.html',
+                'yema': 'story%20yema%20ni%20yayi/yema%20ni%20yayi.html'
+            };
+            const baseUrl = urlMap[storyId] || 'story%20anahaw/anahaw.html';
+            return `${baseUrl}?v=${version}`;
+        }
+
+        // Auto-refresh progress when returning from story
+        let lastTime = Date.now();
+        
+        window.addEventListener('focus', function() {
+            // Refresh progress when window gains focus (user returns from story)
+            if(localStorage.getItem('currentUser')) {
+                const now = Date.now();
+                // Only refresh if at least 2 seconds have passed (to avoid too frequent refreshes)
+                if (now - lastTime > 2000) {
+                    lastTime = now;
+                    checkProgress();
+                }
+            }
+        });
+
+        // Listen for storage changes (when story is completed in another tab/window)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'storyCompleted' && localStorage.getItem('currentUser')) {
+                checkProgress();
+                // Clear the flag
+                localStorage.removeItem('storyCompleted');
+            }
+        });
+
+        window.onload = async function() {
+            if (window.location.protocol === 'file:') {
+                alert("BABALA: Bukas ang file nang direkta (file://).\n\nHindi gagana ang database sa ganitong paraan.\n\nPAKISUNOD ITO:\n1. Ilagay ang files sa C:/xampp/htdocs/malaban/\n2. I-type sa browser: http://localhost/malaban/Main.html");
+                return;
+            }
+
+            generateLevelCards();
+            
+            const userJson = localStorage.getItem('currentUser');
+            if(userJson) {
+                const user = JSON.parse(userJson);
+                if (user.school_id === 'admin') {
+                    isAdmin = true;
+                }
+                await showLibrary();
+            }
+        }
+
+        async function showLibrary() {
+            document.getElementById('intro-screen').style.display = 'none';
+            document.getElementById('leaderboard-section').style.display = 'none';
+            const librarySection = document.getElementById('library-section');
+            librarySection.style.display = 'block';
+            librarySection.classList.add('fade-in-section');
+
+            const completedStories = await checkProgress();
+            if (isAdmin) {
+                document.getElementById('admin-dash-btn').style.display = 'inline-block';
+            }
+            
+            // Check for next or completed parameter to auto-redirect to next story
+            const urlParams = new URLSearchParams(window.location.search);
+            let nextStoryId = urlParams.get('next');
+            const completedStoryId = urlParams.get('completed');
+
+            // If a story was just completed, find the next one in the list
+            if (completedStoryId) {
+                const currentIndex = stories.findIndex(s => s.id === completedStoryId);
+                // If the completed story is found and it's not the last one
+                if (currentIndex !== -1 && currentIndex < (stories.length - 1)) {
+                    nextStoryId = stories[currentIndex + 1].id;
+                }
+            }
+
+            if (nextStoryId) {
+                // Verify the next story is actually unlocked before redirecting
+                const nextIndex = stories.findIndex(s => s.id === nextStoryId);
+                // A story is unlocked if it's the first one, or if the previous one is in completedStories
+                const isUnlocked = (nextIndex === 0) || (nextIndex > 0 && (completedStories.includes(stories[nextIndex - 1].id) || stories[nextIndex - 1].id === completedStoryId));
+
+                if (isUnlocked) {
+                    // Clear the URL parameters to prevent redirect loops on refresh
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Get the URL for the next story
+                    const nextUrl = getStoryUrl(nextStoryId);
+                    // Small delay to ensure UI has settled, then redirect
+                    setTimeout(() => {
+                        window.location.href = nextUrl;
+                    }, 1000);
+                }
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        }
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('auth-title').innerText = isRegisterMode ? 'REGISTRATION' : 'LOG IN';
+            document.getElementById('reg-only-fields').style.display = isRegisterMode ? 'block' : 'none';
+            document.getElementById('auth-btn').innerText = isRegisterMode ? 'MAG-REGISTER' : 'PUMASOK';
+            document.getElementById('auth-toggle').innerText = isRegisterMode ? 'May account na? Log in dito.' : 'Wala pang account? Mag-register.';
+        }
+
+        async function handleAuth() {
+            showLoading('Chine-check ang login...');
+            setTimeout(async () => {
+                const sid = document.getElementById('auth-sid').value.trim();
+                const pass = document.getElementById('auth-pass').value.trim();
+                
+                if (!sid || !pass) { hideLoading(); alert("Punan ang lahat ng fields."); return; }
+
+            // Check admin registration limit
+            if (isRegisterMode && sid.toLowerCase() === 'admin') {
+                try {
+                    const usersResponse = await fetch('get_leaderboard.php?action=list_users');
+                    const usersResult = await usersResponse.json();
+                    if (usersResult.success) {
+                        const adminCount = usersResult.users.filter(user => user.school_id.toLowerCase() === 'admin').length;
+                        if (adminCount >= 5) {
+                            hideLoading();
+                            alert('Hindi na maaaring mag-register ng admin. Puno na ang limit (5).');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    hideLoading();
+                    console.error("Error checking admin count:", e);
+                    alert("Nagkaroon ng error sa pag-check ng admin accounts. Pakisubukang muli.");
+                    return;
+                }
+            }
+
+            const payload = {
+                action: isRegisterMode ? 'register' : 'login',
+                school_id: sid,
+                password: pass
+            };
+
+            if (isRegisterMode) {
+                payload.name = document.getElementById('reg-name').value.trim();
+                payload.school = document.getElementById('reg-school').value.trim();
+                if (!payload.name || !payload.school) { alert("Punan ang lahat ng fields."); return; }
+            }
+
+            try {
+                const response = await fetch('auth.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                hideLoading();
+                const text = await response.text();
+                if (!response.ok) {
+                    console.error("Server returned error status:", response.status, text);
+                    alert("Server Error (" + response.status + "): Hindi mahanap ang auth.php o may error sa server.");
+                    return;
+                }
+
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    console.error("Malformed JSON response. Received text:", text);
+                    alert("Server Error: Ang server ay nagpadala ng invalid data (hindi JSON). Tignan ang Console (F12).");
+                    return;
+                }
+
+                if (result.success) {
+                    if (isRegisterMode) {
+                        alert("Registration successful! Maaari ka nang mag-login.");
+                        toggleAuthMode();
+                    } else {
+                        const user = result.user;
+                        if (user.school_id === 'admin') {
+                            isAdmin = true;
+                            alert('Welcome, Admin! All levels are unlocked for testing.');
+                        } else {
+                            isAdmin = false; // Ensure it's reset for normal users
+                        }
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        showLibrary();
+                    }
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) { 
+                hideLoading();
+                console.error("Connection Error:", e);
+                let errorMsg = "Hindi makakonekta sa server.\n\n";
+                errorMsg += "1. Siguraduhing GREEN ang Apache at MySQL sa XAMPP Control Panel.\n";
+                errorMsg += "2. Siguraduhing tama ang URL (dapat nagsisimula sa http://localhost/).\n";
+                errorMsg += "3. Tignan kung ang auth.php ay nasa parehong folder ng Main.html.\n\n";
+                errorMsg += "Error Detail: " + e.message;
+                alert(errorMsg);
+            } finally { hideLoading(); }
+        }, 2000); }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            location.reload();
+        }
+
+        async function showUserBoard() {
+            showLoading('Naglo-loading USER BOARD...');
+            setTimeout(async () => {
+                hideLoading();
+                document.getElementById('intro-screen').style.display = 'none';
+                document.getElementById('library-section').style.display = 'none';
+                document.getElementById('leaderboard-section').style.display = 'block';
+                const leaderboardSection = document.getElementById('leaderboard-section');
+                leaderboardSection.style.display = 'block';
+                leaderboardSection.classList.add('fade-in-section');
+            
+            const adminExtras = document.getElementById('admin-dashboard-extras');
+            if (isAdmin) {
+                document.getElementById('userboard-name').innerText = "👑 ADMIN DASHBOARD 👑";
+                adminExtras.style.display = 'block';
+                fetchAdminStats();
+
+                // Add search functionality
+                const searchInput = document.getElementById('user-search-input');
+                searchInput.addEventListener('keyup', () => {
+                    const filter = searchInput.value.toLowerCase();
+                    const rows = document.getElementById('leaderboard-body').getElementsByTagName('tr');
+                    for (let i = 0; i < rows.length; i++) {
+                        const nameCell = rows[i].getElementsByTagName('td')[0];
+                        if (nameCell) {
+                            rows[i].style.display = nameCell.textContent.toLowerCase().includes(filter) ? '' : 'none';
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('userboard-name').innerText = "Listahan ng mga Mag-aaral";
+                adminExtras.style.display = 'none';
+            }
+            
+            const tbody = document.getElementById('leaderboard-body');
+            const thead = document.getElementById('leaderboard-head');
+            thead.innerHTML = `<tr><th>Pangalan</th><th>Natapos na Kuwento</th><th>Total Retakes</th><th>Aksyon</th>${isAdmin ? '<th>Admin</th>' : ''}</tr>`;
+            
+            try {
+                const response = await fetch('get_leaderboard.php?action=list_users');
+                const text = await response.text();
+                
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    console.error("Server Response:", text);
+                    throw new Error("Ang server ay nagpadala ng invalid data. Tignan ang Console (F12).");
+                }
+                
+                if (result.success) {
+                    let rows = [];
+                    result.users.forEach(user => {
+                        // Wrapped detail view in showLoading for 1s standardization
+                        const detailOnClick = `showLoading('Kinukuha ang records...'); setTimeout(() => showUserDetails('${user.school_id}', '${user.name}'), 2000);`;
+                        rows.push(
+                            "<tr>" +
+                                "<td style='font-weight: bold; color: #004a8e;'>" + user.name + "</td>" +
+                                "<td style='font-weight: bold;'>" + user.total_completed + " / 39</td>" +
+                                "<td style='font-weight: bold;'>" + (user.total_retakes || 0) + "</td>" +
+                                "<td><button class='btn btn-primary btn-sm' onclick=\"" + detailOnClick + "\">Tingnan Retakes</button></td>" +
+                                (isAdmin ? "<td><button class='btn btn-danger btn-sm' onclick=\"deleteUser('" + user.school_id + "', '" + user.name + "')\">Bura 🗑️</button></td>" : "") +
+                            "</tr>"
+                        );
+                    });
+                    tbody.innerHTML = rows.length > 0 ? rows.join('') : "<tr><td colspan='" + (isAdmin ? 5 : 4) + "'>Wala pang data.</td></tr>";
+                } else {
+                    tbody.innerHTML = "<tr><td colspan='" + (isAdmin ? 5 : 4) + "'>Error: " + result.message + "</td></tr>";
+                }
+            } catch (e) {
+                console.error("Leaderboard error:", e);
+                tbody.innerHTML = "<tr><td colspan='" + (isAdmin ? 5 : 4) + "'>Error loading data: " + e.message + "</td></tr>";
+            }
+            document.getElementById('back-to-home-btn').style.display = 'inline-block';
+            document.getElementById('back-to-users-btn').style.display = 'none';
+        }, 2000); }
+
+        async function deleteUser(sid, username) {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.school_id !== 'admin') {
+                alert('Admin access required for this action.');
+                return;
+            }
+
+            if (confirm("Sigurado ka bang buburahin ang lahat ng record ni " + username + "? Hindi na ito mababawi.")) {
+                try {
+                    const response = await fetch('delete_user.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            admin_id: currentUser.school_id,
+                            school_id_to_delete: sid 
+                        })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) {
+                        alert(`Error (${response.status}): ${result.message || 'Could not delete user.'}`);
+                        return;
+                    }
+                    if (result.success) {
+                        alert("Nabura na ang records ni " + username + ".");
+                        showUserBoard();
+                    } else {
+                        alert(result.message);
+                    }
+                } catch (e) { alert("Error deleting user."); }
+            }
+        }
+
+        async function fetchAdminStats() {
+            try {
+                const response = await fetch('get_leaderboard.php?action=dashboard_stats');
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('total-users-stat').innerText = result.stats.total_users;
+                    document.getElementById('total-completed-stat').innerText = result.stats.total_completed;
+                    document.getElementById('total-retakes-stat').innerText = result.stats.total_retakes;
+                }
+            } catch (e) {
+                console.error("Failed to fetch admin stats:", e);
+            }
+        }
+
+        async function showUserDetails(sid, username) {
+            hideLoading();
+            document.getElementById('userboard-name').innerText = "Records ni " + username;
+            const tbody = document.getElementById('leaderboard-body');
+            const thead = document.getElementById('leaderboard-head');
+            thead.innerHTML = '<tr><th>Kuwento</th><th>Status</th><th>Bilang ng Ulit (Retries)</th></tr>';
+
+            try {
+                const response = await fetch("get_leaderboard.php?action=user_details&school_id=" + sid);
+                const text = await response.text();
+                
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    console.error("Server Response:", text);
+                    throw new Error("Invalid data format.");
+                }
+                
+                if (result.success) {
+                    let rows = [];
+                    result.records.forEach(rec => {
+                        const storyName = stories.find(s => s.id === rec.story_id)?.name || rec.story_id.toUpperCase();
+                        const status = rec.completed == 1 ? '<span class="badge bg-success">Tapos na</span>' : '<span class="badge bg-warning text-dark">Hindi pa</span>';
+                        rows.push("<tr><td>" + storyName + "</td><td>" + status + "</td><td><strong>" + rec.retakes + (rec.retakes > 0 ? ' 🔄' : '') + "</strong></td></tr>");
+                    });
+                    tbody.innerHTML = rows.length > 0 ? rows.join('') : '<tr><td colspan="3">Walang record para sa user na ito.</td></tr>';
+                } else {
+                    tbody.innerHTML = "<tr><td colspan='3'>Error: " + result.message + "</td></tr>";
+                }
+            } catch (e) {
+                console.error("User details error:", e);
+                tbody.innerHTML = "<tr><td colspan='3'>Error loading records: " + e.message + "</td></tr>";
+            }
+
+            document.getElementById('back-to-home-btn').style.display = 'none';
+            document.getElementById('back-to-users-btn').style.display = 'inline-block';
+        }
+
+        async function checkProgress() {
+            const userJson = localStorage.getItem('currentUser');
+            if (!userJson) return [];
+            const user = JSON.parse(userJson);
+            const sid = user.school_id;
+
+            try {
+                const progressResponse = await fetch("get_leaderboard.php?action=get_progress&school_id=" + sid);
+                const progressResult = await progressResponse.json();
+                
+                const detailsResponse = await fetch("get_leaderboard.php?action=user_details&school_id=" + sid);
+                const detailsResult = await detailsResponse.json();
+                
+                let retakesMap = {};
+                if (detailsResult.success) {
+                    detailsResult.records.forEach(rec => {
+                        retakesMap[rec.story_id] = rec.retakes;
+                    });
+                }
+                
+                if (progressResult.success) {
+                    const completedStories = progressResult.completed;
+
+                    // Check if all stories are completed
+                    if (completedStories.length === stories.length && !isAdmin) {
+                        showCompletionScreen();
+                        return completedStories; // Stop further processing
+                    }
+                    
+                    // Update each level card
+                    stories.forEach((story, index) => {
+                        const card = document.getElementById('level-' + index);
+                        if (!card) return;
+                        
+                        const storyId = story.id;
+                        const retakes = retakesMap[storyId];
+                        
+                        // Mark as completed
+                        if (completedStories.includes(storyId)) {
+                            card.classList.add('completed');
+                        } else {
+                            card.classList.remove('completed');
+                        }
+
+                        // Lock/unlock logic
+                        if (isAdmin) {
+                            // Admin sees all levels unlocked
+                            card.classList.remove('locked');
+                        } else {
+                            // Normal user progress-based locking
+                            if (index === 0) {
+                                card.classList.remove('locked'); // First level always unlocked
+                            } else {
+                                const prevStoryId = stories[index - 1].id;
+                                if (!completedStories.includes(prevStoryId)) {
+                                    card.classList.add('locked');
+                                } else {
+                                    card.classList.remove('locked');
+                                }
+                            }
+                        }
+                    });
+                    return completedStories;
+                }
+            } catch (e) { console.error("Failed to sync progress:", e); }
+            return [];
+        }
+
+        function showCompletionScreen() {
+            document.getElementById('library-section').style.display = 'none';
+            document.getElementById('leaderboard-section').style.display = 'none';
+            document.getElementById('intro-screen').style.display = 'none';
+            document.getElementById('completion-screen').style.display = 'flex';
+        }Id('instruction-screen');
+        
+
+        function hideInstructionScreen() {
+            const instructionScreen = document.getElementById('instruction-screen');
+            instructionScreen.style.display = 'none';
+            const librarySection = document.getElementById('library-section');
+            librarySection.style.display = 'block';
+            librarySection.classList.add('fade-in-section');
+        }
+
+        function goBackToLibrary() {
+            document.getElementById('completion-screen').style.display = 'none';
+            document.getElementById('library-section').style.display = 'block';
+            const librarySection = document.getElementById('library-section');
+            librarySection.style.display = 'block';
+            librarySection.classList.add('fade-in-section');
+        }
+
+        async function recordStoryResult(storyId, isPerfect) {
+            const userJson = localStorage.getItem('currentUser');
+            if (!userJson) return;
+            const user = JSON.parse(userJson);
+
+            try {
+                await fetch('save_progress.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        school_id: user.school_id,
+                        story_id: storyId,
+                        is_perfect: isPerfect
+                    })
+                });
+                checkProgress();
+            } catch (e) { console.error("Error saving result:", e); }
+        }
+
+        async function resetProgress() {
+            const userJson = localStorage.getItem('currentUser');
+            if (!userJson) return;
+
+            // 1. Confirm with the user first.
+            if (confirm("Gusto mo bang burahin ang iyong progress at magsimula muli sa unang level?")) {
+                // 2. If confirmed, show the loading screen and wait for the animation.
+                showLoading('Resetting...');
+                setTimeout(async () => {
+                    const user = JSON.parse(userJson);
+                    const sid = user.school_id;
+                    try {
+                        const response = await fetch('reset_progress.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ school_id: sid })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            alert("Ang iyong progress ay nabura na.");
+                            location.reload();
+                        } else {
+                            hideLoading();
+                            alert("Error: " + result.message);
+                        }
+                    } catch (e) {
+                        hideLoading();
+                        alert("Hindi makakonekta sa server para i-reset ang progress.");
+                    }
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>

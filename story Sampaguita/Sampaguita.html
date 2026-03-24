@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sampaguita - Interactive Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Alfabeto';
+            src: url('Alfabeto.ttf') format('truetype');
+        }
+        :root {
+            --primary-font: 'Alfabeto', sans-serif;
+            --main-color: #388E3C; /* Green for leaves/stem */
+            --accent-color: #FFC107; /* Yellow center */
+            --shadow-color: #1B5E20;
+        }
+
+        * {
+            font-family: var(--primary-font);
+        }
+
+        body, html {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            background: #fff3e0; transition: background 0.4s ease-in-out;
+            user-select: none;
+        }
+
+        .wrong-flash { background: #ff4757 !important; transition: 0.2s; }
+
+        /* --- BACKGROUND DECORATION --- */
+        .kitchen-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #E8F5E9; /* Light Green */
+            z-index: 1;
+        }
+
+        .ui-wrapper {
+            position: relative; z-index: 10; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.98); border: 12px solid var(--main-color);
+            border-radius: 50px; padding: 40px; box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            max-width: 1200px; width: 95%; text-align: center; position: relative;
+        }
+
+        h1 { font-size: 3rem; color: var(--main-color); font-weight: 700; }
+        
+        .story-box {
+            font-size: 2rem; line-height: 1.5; background: #fffde7;
+            border-radius: 30px; border: 5px dashed var(--main-color);
+        }
+
+        .deped-logo { position: absolute; top: -75px; left: 10px; width: 140px; }
+
+        .btn-custom {
+            font-size: 2.2rem; padding: 15px 50px; border-radius: 100px; border: none;
+            font-weight: 700; color: white; box-shadow: 0 10px 0 var(--shadow-color); cursor: pointer;
+        }
+        .btn-ready { background-color: var(--main-color); }
+        .btn-ready:active { transform: translateY(8px); box-shadow: 0 2px 0 var(--shadow-color); }
+
+        .btn-choice { 
+            background-color: white; color: var(--main-color); border: 4px solid var(--main-color); 
+            width: 100%; margin-bottom: 12px; text-align: left; padding: 12px 30px;
+            font-size: 2rem; border-radius: 30px; box-shadow: 0 8px 0 var(--main-color);
+            transition: 0.2s;
+        }
+        .btn-choice:hover:not(:disabled) { background-color: var(--main-color); color: white; transform: translateX(10px); }
+
+        .choice-marker { font-weight: 700; margin-right: 15px; color: #000; }
+        #message { font-size: 2.2rem; margin-top: 10px; font-weight: 700; height: 3rem; }
+        .hidden { display: none !important; }
+        
+        .shake { animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .falling-item {
+            position: fixed;
+            top: -60px;
+            font-size: 35px;
+            z-index: 5;
+            pointer-events: none;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
+        #timer-display {
+            position: fixed; top: 20px; right: 20px; background: #ff4757; color: white;
+            padding: 10px 25px; border-radius: 50px; font-size: 2rem; font-weight: 700;
+            border: 4px solid white; z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="kitchen-bg"></div>
+
+    <div id="timer-display" class="hidden">05:00</div>
+
+    <div class="ui-wrapper">
+        <div class="main-card" id="card-container">
+            <img src="deped.png" class="deped-logo" alt="DepEd Logo">
+            
+            <div id="content-welcome">
+                <h1 class="mb-5">Handa ka na ba?</h1>
+                <button class="btn-custom btn-ready" onclick="showStory()">MAGSIMULA!</button>
+            </div>
+
+            <div id="content-story" class="hidden">
+                <h1>Basahin Natin</h1>
+                <table style="margin: 0 auto 30px auto;">
+                    <tr>
+                        <td><img src="sampaguita.png" alt="Sampaguita" style="max-width: 350px; height: auto; animation: float 3s infinite ease-in-out;"></td>
+                    </tr>
+                </table>
+                <div class="story-box p-4 mt-4" style="text-align: left;">
+                    <div style="text-align: center; margin-bottom: 20px;"><strong>Sampaguita</strong></div>
+                    <p style="text-indent: 50px; margin: 0;">
+                        Bumili si Nanay ng tatlong kuwintas ng Sampaguita.
+                        Mahalimuyak at puting-puti ang maliliit na talulot nito.
+                        Inilalagay niya ito sa kaniyang altar.
+                        Ito ang ating pambansang bulaklak.
+                    </p>
+                </div>
+                <button class="btn-custom btn-ready mt-5" onclick="startQuiz()">MAGPATULOY</button>
+            </div>
+
+            <div id="content-quiz" class="hidden">
+                <h2 id="question-text" style="font-size: 2.5rem; font-weight: 700;" class="mb-4"></h2>
+                <div id="choices-container"></div>
+                <div id="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="ding" src="https://www.myinstants.com/media/sounds/ding-sound-effect_1.mp3"></audio>
+    <audio id="buzzer" src="https://www.myinstants.com/media/sounds/spongebob-fail.mp3"></audio>
+
+    <script>
+        const STORY_ID = 'sampaguita';
+        const questions = [
+            { q: "Ano ang binili ni Nanay?", opt: ["Saging", "Sampaguita", "Pinya", "Walis"], ans: 1 },
+            { q: "Ilang kuwintas ng Sampaguita ang binili ni Nanay?", opt: ["1", "3", "4", "5"], ans: 1 },
+            { q: "Ano ang kulay ng Sampaguita?", opt: ["Itim", "Pula", "Puti", "Rosas"], ans: 2 },
+            { q: "Saan ilalagay ang mga kuwintas ng Sampaguita?", opt: ["Altar", "Kusina", "Sala", "Palikuran"], ans: 0 },
+            { q: "Ilarawan ang amoy ng Sampaguita?", opt: ["Maasim", "Mabaho", "Mahalimuyak", "Wala"], ans: 2 }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let itemInterval;
+        let retakeCount = parseInt(localStorage.getItem('sampaguita_retries')) || 0;
+        let timeLeft = 300;
+        let timerInterval;
+        let timerStarted = false;
+        let quizStarted = false;
+        let isSaved = false;
+
+        async function fetchInitialRetakes() {
+            const userJson = localStorage.getItem('currentUser');
+            if (!userJson) return;
+            const user = JSON.parse(userJson);
+            try {
+                const response = await fetch('../get_leaderboard.php?action=user_details&school_id=' + user.school_id);
+                const result = await response.json();
+                if (result.success) {
+                    const record = result.records.find(r => r.story_id === STORY_ID);
+                    if (record) retakeCount = parseInt(record.retakes) || 0;
+                }
+            } catch (e) { console.error("Error fetching retakes:", e); }
+        }
+        fetchInitialRetakes();
+
+        function showStory() {
+            document.getElementById('ding').play();
+            document.querySelector('.kitchen-bg').style.background = '#C8E6C9';
+            document.getElementById('content-welcome').classList.add('hidden');
+            const story = document.getElementById('content-story');
+            story.classList.remove('hidden');
+            story.classList.add('fade-in');
+        }
+
+        function startQuiz() {
+            quizStarted = true;
+            document.getElementById('ding').play();
+            document.querySelector('.kitchen-bg').style.background = '#D9E9F6';
+            document.documentElement.style.setProperty('--main-color', '#0d47a1');
+            document.documentElement.style.setProperty('--shadow-color', '#002171');
+            document.querySelector('.main-card').style.borderColor = '#004a8e';
+            document.getElementById('content-story').classList.add('hidden');
+            const quiz = document.getElementById('content-quiz');
+            quiz.classList.remove('hidden');
+            quiz.classList.add('fade-in');
+            stopItemRain();
+            if(!timerStarted) { startTimer(); timerStarted = true; }
+            loadQuestion();
+        }
+
+        function startTimer() {
+            document.getElementById('timer-display').classList.remove('hidden');
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    let mins = Math.floor(timeLeft / 60);
+                    let secs = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    clearInterval(timerInterval);
+                    finish();
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            const data = questions[currentQ];
+            document.getElementById('question-text').innerHTML = `<span style="color:#0d47a1">${currentQ + 1}.</span> ${data.q}`;
+            
+            const container = document.getElementById('choices-container');
+            container.innerHTML = "";
+            document.getElementById('message').innerText = "";
+            
+            data.opt.forEach((val, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-choice";
+                const letter = String.fromCharCode(65 + idx);
+                btn.innerHTML = `<span class="choice-marker">${letter}.</span> ${val}`;
+                
+                btn.onclick = () => {
+                    const allBtns = container.querySelectorAll('.btn-choice');
+                    allBtns.forEach(b => b.disabled = true);
+
+                    if(idx === data.ans) {
+                        score++;
+                        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                        document.getElementById('ding').play();
+                        document.getElementById('message').innerHTML = "<span style='color:#2ecc71'>⭐ TAMA! ⭐</span>";
+                    } else {
+                        document.body.classList.add('wrong-flash');
+                        setTimeout(() => document.body.classList.remove('wrong-flash'), 400);
+                        document.getElementById('buzzer').play();
+                        btn.classList.add('shake');
+                        document.getElementById('message').innerHTML = "<span style='color:#e74c3c'>❌ Subukan Muli! ❌</span>";
+                    }
+
+                    setTimeout(() => {
+                        currentQ++;
+                        if(currentQ < questions.length) loadQuestion();
+                        else finish();
+                    }, 1500);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        async function finish() {
+            clearInterval(timerInterval);
+            document.getElementById('timer-display').classList.add('hidden');
+
+            const quizNode = document.getElementById('content-quiz');
+            const isPerfect = (score === questions.length);
+            if (!isPerfect) retakeCount++;
+
+            const userJson = localStorage.getItem('currentUser');
+            if (userJson) {
+                const user = JSON.parse(userJson);
+                await fetch('../save_progress.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        school_id: user.school_id,
+                        story_id: STORY_ID,
+                        is_perfect: isPerfect
+                    })
+                }).catch(e => console.error("Error saving result:", e));
+                isSaved = true;
+            }
+
+            if (isPerfect) {
+                confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+                setTimeout(() => {
+                    window.location.href = '../Main.html?completed=' + encodeURIComponent(STORY_ID);
+                }, 2500);
+            }
+
+            quizNode.innerHTML = `
+                <h1 class="mb-4">${isPerfect ? '🏆 NAPAKAHUSAY! 🏆' : 'KAYA MO YAN!'}</h1>
+                <div style="font-size: 4rem; color: #ff9800; font-weight: 700;" class="mb-4">SCORE: ${score}/${questions.length}</div>
+                <div style="font-size: 2rem; color: #0d47a1;" class="mb-4">Bilang ng Ulit: ${retakeCount}</div>
+                <p style="font-size: 1.8rem;">
+                    ${isPerfect 
+                        ? 'Magaling! Inaayos na ang susunod na kuwento...' 
+                        : 'Subukan muli para makuha ang perpektong score.'}
+                </p>
+                <div class="d-flex flex-column gap-2 align-items-center">
+                    ${isPerfect 
+                        ? `<p class="fs-4">Naglo-load ng susunod na aralin...</p>` 
+                        : `<button class="btn-custom btn-ready mt-2" onclick="resetQuiz()">ULITIN 🔄</button>`}
+                    <button class="btn-custom btn-ready mt-2" style="background-color: #6c757d; box-shadow: 0 10px 0 #495057;" onclick="goHome()">HOME 🏠</button>
+                </div>
+            `;
+            quizNode.classList.remove('fade-in');
+            void quizNode.offsetWidth; // trigger reflow
+            quizNode.classList.add('fade-in');
+        }
+
+        function resetQuiz() {
+            currentQ = 0;
+            score = 0;
+            isSaved = false;
+            quizStarted = false;
+            timeLeft = 300;
+            clearInterval(timerInterval);
+            timerStarted = false;
+
+            document.getElementById('content-quiz').innerHTML = `
+                <h2 id="question-text" style="font-size: 2.5rem; font-weight: 700;" class="mb-4"></h2>
+                <div id="choices-container"></div>
+                <div id="message"></div>
+            `;
+            
+            document.getElementById('content-quiz').classList.add('hidden');
+            document.getElementById('content-welcome').classList.remove('hidden');
+            document.getElementById('content-welcome').classList.add('fade-in');
+            
+            document.querySelector('.kitchen-bg').style.background = '#E8F5E9';
+            document.documentElement.style.setProperty('--main-color', '#388E3C');
+            document.documentElement.style.setProperty('--shadow-color', '#1B5E20');
+            document.querySelector('.main-card').style.borderColor = 'var(--main-color)';
+            document.getElementById('timer-display').classList.add('hidden');
+            
+            startItemRain();
+            fetchInitialRetakes();
+        }
+
+        function startItemRain() {
+            itemInterval = setInterval(() => {
+                const item = document.createElement('div');
+                item.classList.add('falling-item');
+                item.innerText = '🌼';
+                item.style.left = Math.random() * 95 + 'vw';
+                const duration = Math.random() * 3 + 4;
+                item.style.animation = `fall ${duration}s linear`;
+                document.body.appendChild(item);
+                setTimeout(() => item.remove(), duration * 1000);
+            }, 800);
+        }
+
+        function stopItemRain() {
+            clearInterval(itemInterval);
+            document.querySelectorAll('.falling-item').forEach(el => el.remove());
+        }
+
+        function goHome() {
+            const leave = () => { window.location.href = '../Main.html'; };
+            if (quizStarted && !isSaved) {
+                if (confirm("Hindi pa tapos ang quiz. Kung aalis ka, hindi ito mase-save. Sigurado ka ba?")) {
+                    leave();
+                }
+            } else {
+                leave();
+            }
+        }
+
+        window.onbeforeunload = function() {
+            if (quizStarted && !isSaved) {
+                return "Hindi pa tapos ang quiz. Kung aalis ka, hindi ito mase-save. Sigurado ka ba?";
+            }
+        };
+        startItemRain();
+    </script>
+</body>
+</html>

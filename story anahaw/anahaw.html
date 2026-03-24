@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anahaw Interactive Quiz - DepEd Edition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body, html {
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: 'Arial Rounded MT Bold', cursive, sans-serif;
+            user-select: none;
+            color: #000000;
+        }
+
+        /* --- GARDEN BACKGROUND --- */
+        .garden-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #2e7d32 0%, #4caf50 100%);
+            z-index: 1;
+            transition: 0.8s ease;
+            overflow: hidden;
+        }
+
+        .white-bg-active { background: #f0f2f5 !important; }
+
+        /* --- SWAYING ANAHAW (BOTTOM RIGHT) --- */
+        .swaying-anahaw {
+            position: absolute;
+            bottom: -20px;
+            right: -20px;
+            width: 300px;
+            z-index: 2;
+            transform-origin: bottom right;
+            animation: sway 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(-5deg) scale(1.05); }
+        }
+
+        /* --- FALLING ANAHAW EFFECT --- */
+        .falling-leaf {
+            position: absolute;
+            top: -100px;
+            z-index: 2;
+            opacity: 0.6;
+            pointer-events: none;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(0) rotate(0deg) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(110vh) rotate(360deg) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        /* --- UI COMPONENTS --- */
+        .ui-wrapper { position: relative; z-index: 10; height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.95); 
+            border: 8px solid #004a8e; 
+            border-radius: 50px; 
+            padding: 50px 40px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            max-width: 900px; width: 95%; text-align: center; position: relative;
+        }
+
+        .deped-logo { position: absolute; top: -45px; left: 30px; width: 130px; z-index: 20; }
+
+        .story-box {
+            font-size: 1.8rem; line-height: 1.4; background: #ffffff;
+            border-radius: 30px; border: 5px dashed #004a8e; 
+            padding: 25px; margin-top: 10px;
+        }
+        .story-paragraph {
+            text-align: justify;
+            width: 100%;
+            margin: 0;
+            padding-left: 2rem;
+            text-indent: 2rem;
+            line-height: 1.6;
+            font-size: 1.8rem;
+        }
+        .story-paragraph p {
+            margin-bottom: 1rem;
+        }
+
+        .anahaw-center-img {
+            width: 180px; height: auto; margin-bottom: 10px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .btn-custom { font-size: 2.2rem; padding: 15px 60px; border-radius: 100px; border: none; font-weight: bold; color: white !important; cursor: pointer; background: #004a8e; box-shadow: 0 10px 0 #002d5a; }
+        .btn-custom:active { transform: translateY(5px); box-shadow: 0 4px 0 #002d5a; }
+
+        .btn-choice { background: white; color: #000 !important; border: 3px solid #004a8e; width: 100%; margin-bottom: 12px; padding: 12px; font-size: 1.6rem; border-radius: 20px; font-weight: bold; box-shadow: 0 6px 0 #004a8e; }
+        .btn-choice:hover:not(:disabled) { background: #eef6ff; transform: scale(1.02); }
+
+        #timer-display {
+            position: fixed; top: 20px; right: 20px; background: #ff4757; color: white;
+            padding: 10px 25px; border-radius: 50px; font-size: 2rem; font-weight: 700;
+            border: 4px solid white; z-index: 100;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="bg-layer" class="garden-bg">
+        <img src="anahaw.png" class="swaying-anahaw" alt="Moving Leaf">
+    </div>
+
+    <div id="timer-display" class="hidden">05:00</div>
+
+    <div class="ui-wrapper">
+        <div class="main-card">
+            <img src="deped.png" class="deped-logo" alt="DepEd">
+
+            <div id="content-welcome">
+                <h1 style="color: #004a8e; font-weight: 800; font-size: 3.5rem;">Handa Ka Na Ba?</h1>
+                <img src="anahaw.png" class="anahaw-center-img" alt="Anahaw">
+                <br>
+                <button class="btn-custom" onclick="goToStory()">MAGSIMULA!</button>
+            </div>
+
+            <div id="content-story" class="hidden">
+                <h1 style="color: #004a8e;">Basahin Natin 📖</h1>
+                <div class="d-flex align-items-center gap-4 mt-4">
+                    <img src="anahaw.png" style="width: 150px;">
+                    <div class="story-box">
+                        <div class="story-paragraph">
+                            <p>Ito ay malapad, makintab, pabilog at may kulay berdeng dahon.
+                            Ito ang kalapyaw o kapote noon.Ginagawa rin itong bubong ng bahay kubo.
+                            Ito ang pambansang dahon ng mga Pilipino.</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-custom mt-5" onclick="goToQuiz()">MAGPATULOY 🚀</button>
+            </div>
+
+            <div id="content-quiz" class="hidden">
+                <h2 id="question-text" style="font-size: 2.5rem; margin-bottom: 30px; font-weight: bold; color: #004a8e;"></h2>
+                <div id="choices-container"></div>
+                <div id="message" class="mt-3 fs-2 fw-bold"></div>
+            </div>
+
+            <div id="content-finish" class="hidden">
+                <h1 style="font-size: 4rem; color: #004a8e;">Galing! 🏆</h1>
+                <button class="btn-custom" onclick="location.reload()">ULITIN 🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="ding" src="https://www.myinstants.com/media/sounds/ding-sound-effect_1.mp3"></audio>
+    <audio id="buzzer" src="https://www.myinstants.com/media/sounds/spongebob-fail.mp3"></audio>
+
+    <script>
+        const questions = [
+            { q: "1. Ano ang pambansang dahon?", opt: ["Anahaw", "Lagundi", "Oregano", "Sambong"], ans: 0 },
+            { q: "2. Ano ang kulay nito?", opt: ["Asul", "Berde", "Dilaw", "Pula"], ans: 1 },
+            { q: "3. Ano ang hugis ng anahaw?", opt: ["Pabilog", "Pahaba", "Papuso", "Parisukat"], ans: 0 },
+            { q: "4. Ano ang gamit ng anahaw noon?", opt: ["Kapote", "Sapatos", "Sasakyan", "Pagkain"], ans: 0 },
+            { q: "5. Anong parte ng bahay ito maaring gamitin?", opt: ["Bubong", "Hagdan", "Haligi", "Sahig"], ans: 0 }
+        ];
+
+        const STORY_ID = 'anahaw';
+
+        let currentQ = 0;
+        let score = 0;
+        let retakeCount = 0;
+        let quizStarted = false;
+        let isSaved = false;
+        let timeLeft = 300;
+        let timerStarted = false;
+        let timerInterval;
+
+        function shootConfetti() {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#2e7d32', '#4caf50', '#ffffff', '#ffc107']
+            });
+        }
+
+        async function fetchInitialRetakes() {
+            const userJson = localStorage.getItem('currentUser');
+            if (!userJson) return;
+            const user = JSON.parse(userJson);
+            try {
+                const response = await fetch('../get_leaderboard.php?action=user_details&school_id=' + user.school_id);
+                const result = await response.json();
+                if (result.success) {
+                    const record = result.records.find(r => r.story_id === STORY_ID);
+                    if (record) retakeCount = parseInt(record.retakes) || 0;
+                }
+            } catch (e) { console.error("Error fetching retakes:", e); }
+        }
+        fetchInitialRetakes();
+
+        function createFallingLeaf() {
+            const container = document.getElementById('bg-layer');
+            if (!container || container.classList.contains('white-bg-active')) return;
+
+            const leaf = document.createElement('img');
+            leaf.src = 'anahaw.png';
+            leaf.className = 'falling-leaf';
+            
+            const startPos = Math.random() * 100;
+            const duration = Math.random() * 5 + 7;
+            const size = Math.random() * 50 + 30;
+            const delay = Math.random() * 5;
+
+            leaf.style.left = startPos + '%';
+            leaf.style.width = size + 'px';
+            leaf.style.animationDuration = duration + 's';
+            leaf.style.animationDelay = delay + 's';
+
+            container.appendChild(leaf);
+            setTimeout(() => leaf.remove(), (duration + delay) * 1000);
+        }
+        setInterval(createFallingLeaf, 600);
+
+        function goToStory() {
+            document.getElementById('ding').play();
+            showScreen('story');
+        }
+
+        function goToQuiz() {
+            document.getElementById('ding').play();
+            quizStarted = true;
+            // Change background to white when starting the quiz
+            document.getElementById('bg-layer').classList.add('white-bg-active');
+            document.querySelector('.swaying-anahaw').style.display = 'none';
+            document.querySelectorAll('.falling-leaf').forEach(leaf => leaf.remove());
+            document.getElementById('timer-display').classList.remove('hidden');
+            if(!timerStarted) { startTimer(); timerStarted = true; }
+            showScreen('quiz');
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    let mins = Math.floor(timeLeft / 60);
+                    let secs = timeLeft % 60;
+                    document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    clearInterval(timerInterval);
+                    finish();
+                }
+            }, 1000);
+        }
+
+        async function resetQuiz() {
+            currentQ = 0;
+            score = 0;
+            isSaved = false;
+            timeLeft = 300;
+            clearInterval(timerInterval);
+            timerStarted = false;
+            document.getElementById('bg-layer').classList.remove('white-bg-active');
+            document.querySelector('.swaying-anahaw').style.display = 'block';
+            document.getElementById('timer-display').classList.add('hidden');
+            showScreen('welcome');
+        }
+
+        function showScreen(id) {
+            document.body.style.pointerEvents = 'none';
+            setTimeout(() => {
+                document.querySelectorAll('.main-card > div').forEach(div => div.classList.add('hidden'));
+                document.getElementById(`content-${id}`).classList.remove('hidden');
+                document.body.style.pointerEvents = 'auto';
+                if(id === 'quiz') loadQuestion();
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            const data = questions[currentQ];
+            document.getElementById('question-text').innerText = data.q;
+            const container = document.getElementById('choices-container');
+            const msg = document.getElementById('message');
+            
+            container.innerHTML = "";
+            msg.innerText = "";
+
+            data.opt.forEach((val, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-choice";
+                btn.innerText = `${String.fromCharCode(65 + idx)}. ${val}`;
+                btn.onclick = () => {
+                    const allBtns = container.querySelectorAll('.btn-choice');
+                    allBtns.forEach(b => b.disabled = true);
+
+                    if(idx === data.ans) {
+                        score++;
+                        confetti();
+                        document.getElementById('ding').play();
+                        msg.innerHTML = "<span style='color: green;'>TAMA! ⭐</span>";
+                    } else {
+                        document.getElementById('buzzer').play();
+                        msg.innerHTML = "<span style='color: red;'>MALI! ❌</span>";
+                    }
+                    setTimeout(nextQuestion, 1000);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function nextQuestion() {
+            currentQ++;
+            if(currentQ < questions.length) loadQuestion();
+            else finish();
+        }
+
+        async function finish() {
+            const quizNode = document.getElementById('content-quiz');
+            const isPerfect = (score === questions.length);
+            if(!isPerfect) retakeCount++;
+
+            const userJson = localStorage.getItem('currentUser');
+            if(userJson) {
+                const user = JSON.parse(userJson);
+                await fetch('../save_progress.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        school_id: user.school_id,
+                        story_id: STORY_ID,
+                        is_perfect: isPerfect
+                    })
+                }).catch(e => console.error("Error saving result:", e));
+                isSaved = true;
+            }
+
+            if(isPerfect) {
+                shootConfetti();
+                setTimeout(() => {
+                    window.location.href = '../Main.html?completed=' + encodeURIComponent(STORY_ID);
+                }, 2000);
+            }
+
+            let resultHTML = `
+                <h1 class="mb-4">${isPerfect ? '🏆 NAPAKAHUSAY! 🏆' : 'KAYA MO \'YAN!'}</h1>
+                <div style="font-size: 5rem; color: #ff9800; font-weight: 700;" class="mb-4">${score} / ${questions.length}</div>
+                <div style="font-size: 2rem; color: #0d47a1;" class="mb-4">Bilang ng Ulit: ${retakeCount}</div>
+                <p style="font-size: 2rem;">
+                    ${isPerfect 
+                        ? 'Handa ka na para sa susunod na aralin!' 
+                        : 'Subukan muli para makuha ang perpektong score.'}
+                </p>
+                <div class="d-flex flex-column gap-3 align-items-center">
+                    ${isPerfect 
+                        ? `<p style="font-size: 1.5rem;">Naglo-load ng susunod na aralin...</p>` 
+                        : `<button class="btn-custom btn-ready mt-4" onclick="setTimeout(resetQuiz, 1000)">ULITIN 🔄</button>`
+                    }
+                    <button class="btn-custom btn-home mt-3" onclick="setTimeout(goHome, 1000)">HOME 🏠</button>
+                </div>
+            `;
+
+            document.body.style.pointerEvents = 'none';
+            setTimeout(() => {
+                document.querySelectorAll('.main-card > div').forEach(div => div.classList.add('hidden'));
+                quizNode.classList.remove('hidden');
+                quizNode.innerHTML = resultHTML;
+                document.body.style.pointerEvents = 'auto';
+            }, 1000);
+
+            document.getElementById('timer-display').classList.add('hidden');
+        }
+
+        function goHome() {
+            const leave = () => { window.location.href = '../Main.html'; };
+            if(quizStarted && !isSaved) {
+                if(confirm("Maaring hindi masave ang iyong quiz. Sigurado ka ba?")) {
+                    setTimeout(leave, 1000);
+                }
+            } else {
+                setTimeout(leave, 1000);
+            }
+        }
+
+        window.onbeforeunload = function() {
+            if(quizStarted && !isSaved) {
+                return "Maaring hindi masave ang iyong quiz. Sigurado ka ba?";
+            }
+        };
+    </script>
+</body>
+</html>
